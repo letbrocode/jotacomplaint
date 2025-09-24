@@ -58,12 +58,14 @@ model User {
     id            String    @id @default(cuid())
     name          String?
     email         String?   @unique
-    emailVerified DateTime?
-    image         String?
-    accounts      Account[]
-    sessions      Session[]
-    posts         Post[]
     password      String
+    role          Role     @default(USER)
+    complaints Complaint[]
+    createdAt DateTime @default(now())
+    accounts    Account[]
+    posts Post[]
+
+    sessions Session[]
 }
 
 model VerificationToken {
@@ -72,4 +74,32 @@ model VerificationToken {
     expires    DateTime
 
     @@unique([identifier, token])
+}
+
+
+model Complaint {
+  id          String   @id @default(cuid())
+  title       String
+  details     String
+  category    String
+  location    String?
+  latitude    Float?
+  longitude   Float?
+  photoUrl    String?
+  status      Status   @default(PENDING)
+  createdAt   DateTime @default(now())
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+enum Status {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+}
+
+enum Role {
+  USER
+  ADMIN
 }
