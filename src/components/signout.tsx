@@ -8,10 +8,9 @@ const Signout = () => {
     <button
       type="button"
       onClick={() => signOut()}
-      className="hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm font-medium"
+      className="hover:bg-accent flex items-center justify-center rounded-md p-2"
     >
       <PiSignOutLight className="h-5 w-5" />
-      <span>Sign out</span>
     </button>
   );
 };

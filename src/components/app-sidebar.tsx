@@ -20,8 +20,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "~/components/ui/sidebar";
-import { signOut } from "~/server/auth";
 import Signout from "./signout";
+import { UserAvatar } from "./useravatar";
+import { auth } from "~/server/auth";
 
 // Menu items.
 const items = [
@@ -52,7 +53,9 @@ const items = [
   },
 ];
 
-export function AppSidebar() {
+export async function AppSidebar() {
+  const serverSession = await auth();
+  const user = serverSession?.user;
   return (
     <Sidebar>
       <SidebarContent>
@@ -75,13 +78,21 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Signout />
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <div className="flex items-center justify-between gap-3 p-3">
+          <UserAvatar
+            name={user?.name}
+            email={user?.email}
+            image={user?.image}
+          />
+          {/* User Info */}
+          <div className="flex-1 overflow-hidden">
+            <p className="truncate text-sm font-medium">{user?.name}</p>
+            <p className="text-muted-foreground truncate text-xs">
+              {user?.email}
+            </p>
+          </div>
+          <Signout />
+        </div>
       </SidebarFooter>
     </Sidebar>
   );
