@@ -16,7 +16,8 @@ import {
 export default function RegisterComplaint() {
   const [title, setTitle] = useState("");
   const [details, setDetails] = useState("");
-  const [category, setCategory] = useState("service");
+  const [category, setCategory] = useState("SANITATION"); // default category
+  const [priority, setPriority] = useState("MEDIUM"); // default priority
   const [location, setLocation] = useState("");
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
@@ -35,6 +36,7 @@ export default function RegisterComplaint() {
           title,
           details,
           category,
+          priority,
           location: location || null,
           latitude: latitude ? parseFloat(latitude) : null,
           longitude: longitude ? parseFloat(longitude) : null,
@@ -57,7 +59,7 @@ export default function RegisterComplaint() {
   }
 
   return (
-    <Card className="max-w-lg">
+    <Card className="mt-4 w-full">
       <CardHeader>
         <CardTitle>Register a Complaint</CardTitle>
       </CardHeader>
@@ -75,16 +77,30 @@ export default function RegisterComplaint() {
             onChange={(e) => setDetails(e.target.value)}
             required
           />
-          <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="service">Service</SelectItem>
-              <SelectItem value="billing">Billing</SelectItem>
-              <SelectItem value="technical">Technical</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex gap-4">
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ROADS">Roads</SelectItem>
+                <SelectItem value="WATER">Water</SelectItem>
+                <SelectItem value="ELECTRICITY">Electricity</SelectItem>
+                <SelectItem value="SANITATION">Sanitation</SelectItem>
+                <SelectItem value="OTHER">Other</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={priority} onValueChange={setPriority}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="LOW">Low</SelectItem>
+                <SelectItem value="MEDIUM">Medium</SelectItem>
+                <SelectItem value="HIGH">High</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <Input
             placeholder="Location (optional)"
             value={location}

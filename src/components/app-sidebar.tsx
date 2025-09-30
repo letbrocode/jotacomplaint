@@ -28,7 +28,7 @@ import { auth } from "~/server/auth";
 const items = [
   {
     title: "Home",
-    url: "#",
+    url: "/dashboard",
     icon: Home,
   },
   {

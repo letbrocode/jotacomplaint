@@ -10,9 +10,9 @@ export async function POST(req: Request) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
+ 
     const body = await req.json();
-    const { title, details, category, latitude, longitude, photoUrl } = body;
+    const { title, details, category, latitude, longitude, photoUrl, priority } = body;
 
     const complaint = await db.complaint.create({
       data: {
@@ -21,6 +21,7 @@ export async function POST(req: Request) {
         category,
         latitude,
         longitude,
+        priority,
         photoUrl,
         userId: session.user.id,
       },

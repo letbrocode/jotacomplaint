@@ -10,8 +10,10 @@ export default function DashboardLayout({
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarTrigger />
-      <main className="flex items-center justify-center">{children}</main>
+      <main className="flex-1 p-6">
+        <SidebarTrigger />
+        {children}
+      </main>
     </SidebarProvider>
   );
 }
