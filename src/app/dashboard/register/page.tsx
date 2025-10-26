@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import Dropzone from "~/components/dropzone";
 
 export default function RegisterComplaint() {
   const [title, setTitle] = useState("");
@@ -125,6 +126,7 @@ export default function RegisterComplaint() {
             value={photoUrl}
             onChange={(e) => setPhotoUrl(e.target.value)}
           />
+          <Dropzone onUploadComplete={(url) => setPhotoUrl(url ?? "")} />
           <Button type="submit">Submit</Button>
         </form>
         {message && <p className="mt-4">{message}</p>}
