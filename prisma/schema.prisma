@@ -55,6 +55,8 @@ model User {
     createdAt DateTime @default(now())
     accounts    Account[]
 
+// New relation: Departments the user is part of (as staff)
+  departments   Department[] @relation("DepartmentStaff")
     sessions Session[]
 }
 
@@ -89,7 +91,21 @@ model Complaint {
   assignedToId String?
   assignedTo   User?    @relation("AssignedComplaints", fields: [assignedToId], references: [id])
 
+  // new link to department
+  departmentId Int?
+  department   Department?      @relation(fields: [departmentId], references: [id])
+
   resolvedAt   DateTime?
+}
+
+model Department {
+  id          Int         @id @default(autoincrement())
+  name        String      @unique
+  description String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  complaints  Complaint[]
+  staff       User[]      @relation("DepartmentStaff")
 }
 
 enum Status {
@@ -101,6 +117,7 @@ enum Status {
 enum Role {
   USER
   ADMIN
+  STAFF
 }
 
 enum ComplaintCategory {
