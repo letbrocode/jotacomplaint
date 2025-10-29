@@ -1,15 +1,11 @@
-import type { Department, User } from "@prisma/client";
+import type { Complaint, Department, User } from "@prisma/client";
 
-export type ComplaintWithRelations = {
-  id: string;
-  title: string;
-  details: string;
-  category: string;
-  priority: string;
-  status: "PENDING" | "IN_PROGRESS" | "RESOLVED";
-  createdAt: string | Date;
-  updatedAt: string | Date;
-  user?: User | null;
-  department?: Department | null;
+export type ComplaintWithRelations = Complaint & {
+  user: User;
+  department: Department | null;
   assignedTo?: User | null;
+  _count?: {
+    comments?: number;
+    activities?: number;
+  };
 };

@@ -4,12 +4,16 @@ import { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Button } from "~/components/ui/button";
+import { Badge } from "~/components/ui/badge";
 import {
   AlertTriangle,
   CheckCircle,
   Clock,
   BarChart3,
   RefreshCw,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -27,23 +31,24 @@ import {
 } from "recharts";
 import type { ComplaintWithRelations } from "~/types/complaint";
 import { DataTable } from "~/components/ui/data-table";
+import Link from "next/link";
 
 // Color palette for charts
 const COLORS = ["#f59e0b", "#3b82f6", "#10b981", "#ef4444"];
 
 function DashboardSkeleton() {
   return (
-    <div className="space-y-6">
-      <div className="grid gap-6 md:grid-cols-3">
-        {[...Array(3)].map((_, i) => (
-          <Skeleton key={i} className="h-24 w-full" />
+    <div className="space-y-8">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <Skeleton key={i} className="h-32 w-full" />
         ))}
       </div>
-      <div className="grid gap-8 lg:grid-cols-2">
-        <Skeleton className="h-[350px] w-full" />
-        <Skeleton className="h-[350px] w-full" />
-        <Skeleton className="h-[400px] w-full lg:col-span-2" />
+      <div className="grid gap-4 lg:grid-cols-7">
+        <Skeleton className="h-[400px] lg:col-span-4" />
+        <Skeleton className="h-[400px] lg:col-span-3" />
       </div>
+      <Skeleton className="h-[400px] w-full" />
     </div>
   );
 }
@@ -79,18 +84,53 @@ export default function AdminDashboardPage() {
     fetchComplaints();
   }, []);
 
-  // Memoized statistics
-  const stats = useMemo(
-    () => ({
-      total: complaints.length,
-      pending: complaints.filter((c) => c.status === "PENDING").length,
-      inProgress: complaints.filter((c) => c.status === "IN_PROGRESS").length,
-      resolved: complaints.filter((c) => c.status === "RESOLVED").length,
-    }),
-    [complaints],
-  );
+  // Memoized statistics with trends
+  const stats = useMemo(() => {
+    const total = complaints.length;
+    const pending = complaints.filter((c) => c.status === "PENDING").length;
+    const inProgress = complaints.filter(
+      (c) => c.status === "IN_PROGRESS",
+    ).length;
+    const resolved = complaints.filter((c) => c.status === "RESOLVED").length;
 
-  // Memoized chart data - Trend line
+    // Calculate this week vs last week
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+    const thisWeek = complaints.filter(
+      (c) => new Date(c.createdAt) >= weekAgo,
+    ).length;
+    const lastWeek = complaints.filter(
+      (c) =>
+        new Date(c.createdAt) >= twoWeeksAgo && new Date(c.createdAt) < weekAgo,
+    ).length;
+
+    const trend =
+      lastWeek === 0
+        ? "neutral"
+        : thisWeek > lastWeek
+          ? "up"
+          : thisWeek < lastWeek
+            ? "down"
+            : "neutral";
+
+    const trendPercentage =
+      lastWeek === 0 ? 0 : Math.abs(((thisWeek - lastWeek) / lastWeek) * 100);
+
+    return {
+      total,
+      pending,
+      inProgress,
+      resolved,
+      completionRate: total > 0 ? (resolved / total) * 100 : 0,
+      trend,
+      trendPercentage,
+      thisWeek,
+    };
+  }, [complaints]);
+
+  // Memoized chart data - OLD STYLE
   const trendData = useMemo(() => {
     const complaintsByDate = complaints.reduce(
       (acc: Record<string, number>, c) => {
@@ -101,16 +141,11 @@ export default function AdminDashboardPage() {
       {},
     );
 
-    // Sort by date
     return Object.entries(complaintsByDate)
-      .map(([date, count]) => ({
-        date,
-        count,
-      }))
+      .map(([date, count]) => ({ date, count }))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [complaints]);
 
-  // Memoized chart data - Status distribution (fixed to exclude Total)
   const statusData = useMemo(() => {
     return [
       { name: "Pending", value: stats.pending },
@@ -119,7 +154,6 @@ export default function AdminDashboardPage() {
     ].filter((item) => item.value > 0);
   }, [stats]);
 
-  // Memoized chart data - Department-wise
   const departmentData = useMemo(() => {
     const departmentsMap: Record<
       string,
@@ -143,17 +177,17 @@ export default function AdminDashboardPage() {
     }));
   }, [complaints]);
 
-  // Loading state
+  const recentComplaints = useMemo(() => complaints.slice(0, 5), [complaints]);
+
   if (loading) return <DashboardSkeleton />;
 
-  // Error state
   if (error) {
     return (
-      <div className="flex min-h-[400px] flex-col items-center justify-center space-y-4 p-8">
-        <AlertTriangle className="h-16 w-16 text-red-500" />
+      <div className="flex min-h-[60vh] flex-col items-center justify-center space-y-4">
+        <AlertTriangle className="text-destructive h-16 w-16" />
         <h2 className="text-2xl font-bold">Something went wrong</h2>
         <p className="text-muted-foreground text-center">{error}</p>
-        <Button onClick={fetchComplaints} className="mt-4">
+        <Button onClick={fetchComplaints}>
           <RefreshCw className="mr-2 h-4 w-4" />
           Try Again
         </Button>
@@ -161,32 +195,25 @@ export default function AdminDashboardPage() {
     );
   }
 
-  // Empty state
   if (complaints.length === 0) {
     return (
-      <div className="space-y-6 p-4 md:p-8">
+      <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              Admin Dashboard
-            </h1>
+            <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
             <p className="text-muted-foreground">
-              Monitor complaints, track performance, and identify trends.
+              Welcome to your complaint management system
             </p>
           </div>
-          <Button
-            onClick={fetchComplaints}
-            variant="outline"
-            disabled={loading}
-          >
+          <Button onClick={fetchComplaints} variant="outline">
             <RefreshCw className="mr-2 h-4 w-4" />
             Refresh
           </Button>
         </div>
         <Card className="p-12 text-center">
-          <BarChart3 className="text-muted-foreground mx-auto h-16 w-16" />
-          <h3 className="mt-4 text-lg font-semibold">No complaints yet</h3>
-          <p className="text-muted-foreground mt-2 text-sm">
+          <BarChart3 className="text-muted-foreground/50 mx-auto h-20 w-20" />
+          <h3 className="mt-6 text-xl font-semibold">No complaints yet</h3>
+          <p className="text-muted-foreground mt-2">
             Complaints will appear here once users submit them.
           </p>
         </Card>
@@ -194,81 +221,117 @@ export default function AdminDashboardPage() {
     );
   }
 
+  const TrendIcon =
+    stats.trend === "up"
+      ? TrendingUp
+      : stats.trend === "down"
+        ? TrendingDown
+        : Minus;
+
+  const trendColor =
+    stats.trend === "up"
+      ? "text-red-600"
+      : stats.trend === "down"
+        ? "text-green-600"
+        : "text-muted-foreground";
+
   return (
-    <div className="space-y-10 p-4 md:p-8">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-8">
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+          <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
           <p className="text-muted-foreground">
-            Monitor complaints, track performance, and identify trends.
-          </p>
-          <p className="text-muted-foreground mt-1 text-xs">
-            Last updated: {lastUpdated.toLocaleTimeString()}
+            Overview of your complaint management system
           </p>
         </div>
-        <Button
-          onClick={fetchComplaints}
-          variant="outline"
-          disabled={loading}
-          className="w-full sm:w-auto"
-        >
-          <RefreshCw
-            className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`}
-          />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <p className="text-muted-foreground text-xs">
+            Updated {lastUpdated.toLocaleTimeString()}
+          </p>
+          <Button
+            onClick={fetchComplaints}
+            variant="outline"
+            size="sm"
+            disabled={loading}
+          >
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`}
+            />
+            Refresh
+          </Button>
+        </div>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card className="transition hover:shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Total Complaints
             </CardTitle>
-            <BarChart3 className="h-5 w-5 text-blue-500" />
+            <BarChart3 className="h-4 w-4 text-blue-700" />
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{stats.total}</p>
-            <p className="text-muted-foreground mt-1 text-xs">
-              All submitted complaints
-            </p>
+            <div className="text-2xl font-bold">{stats.total}</div>
+            <div className="text-muted-foreground flex items-center gap-1 text-xs">
+              <TrendIcon className={`h-3 w-3 ${trendColor}`} />
+              <span className={trendColor}>
+                {stats.trendPercentage.toFixed(0)}% from last week
+              </span>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="transition hover:shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-5 w-5 text-yellow-500" />
+            <Clock className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{stats.pending}</p>
-            <p className="text-muted-foreground mt-1 text-xs">
-              Awaiting assignment
+            <div className="text-2xl font-bold">{stats.pending}</div>
+            <p className="text-muted-foreground text-xs">
+              {stats.total > 0
+                ? ((stats.pending / stats.total) * 100).toFixed(1)
+                : 0}
+              % of total
             </p>
           </CardContent>
         </Card>
 
-        <Card className="transition hover:shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Resolved</CardTitle>
-            <CheckCircle className="h-5 w-5 text-green-500" />
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">In Progress</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-red-700" />
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{stats.resolved}</p>
-            <p className="text-muted-foreground mt-1 text-xs">
+            <div className="text-2xl font-bold">{stats.inProgress}</div>
+            <p className="text-muted-foreground text-xs">
               {stats.total > 0
-                ? `${((stats.resolved / stats.total) * 100).toFixed(1)}% completion rate`
-                : "No data yet"}
+                ? ((stats.inProgress / stats.total) * 100).toFixed(1)
+                : 0}
+              % of total
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Resolved</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.resolved}</div>
+            <p className="text-muted-foreground text-xs">
+              {stats.completionRate.toFixed(1)}% completion rate
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts Section */}
+      {/* Charts - OLD STYLE */}
       <div className="grid gap-8 lg:grid-cols-2">
-        {/* Line Chart */}
+        {/* Line Chart - OLD STYLE */}
         <Card>
           <CardHeader>
             <CardTitle>Complaints Over Time</CardTitle>
@@ -353,7 +416,7 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Department-wise Bar Chart */}
+        {/* Department-wise Bar Chart - OLD STYLE */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Complaints by Department</CardTitle>
@@ -403,11 +466,23 @@ export default function AdminDashboardPage() {
         </Card>
       </div>
 
-      {/* Complaints Table */}
-      <div className="mt-10">
-        <h2 className="mb-4 text-2xl font-semibold">Recent Complaints</h2>
-        <DataTable complaints={complaints} />
-      </div>
+      {/* Recent Complaints */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Recent Complaints</CardTitle>
+            <p className="text-muted-foreground text-sm">
+              Latest 5 complaints submitted
+            </p>
+          </div>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/admin/complaints">View All</Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <DataTable complaints={recentComplaints} />
+        </CardContent>
+      </Card>
     </div>
   );
 }

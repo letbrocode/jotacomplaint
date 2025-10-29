@@ -19,10 +19,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { signup } from "~/app/actions/auth";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 
 type FormValues = z.infer<typeof signInSchema>;
 
 const Signup = () => {
+  const [isLoading, setIsLoading] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -30,20 +34,34 @@ const Signup = () => {
   } = useForm<FormValues>({ resolver: zodResolver(signInSchema) });
 
   const router = useRouter();
+
   const onSubmit = async (data: FormValues) => {
-    const response = await signup(data.email, data.password);
-    if (!response.success) {
-      toast.error("Sign up failed", {
-        description: response.error,
+    setIsLoading(true);
+
+    try {
+      const response = await signup(data.email, data.password);
+
+      if (!response.success) {
+        toast.error("Sign up failed", {
+          description: response.error,
+        });
+        setIsLoading(false);
+      } else {
+        toast.success("Account created successfully!", {
+          description: "Redirecting to sign in...",
+        });
+
+        // Keep loading state while redirecting
+        setTimeout(() => {
+          router.push("/signin");
+        }, 1500);
+      }
+    } catch (error) {
+      toast.error("Something went wrong", {
+        description: "Please try again later",
       });
-    } else {
-      toast.success("Sign up successful!", {
-        description: "You can now sign in with your new account",
-      });
+      setIsLoading(false);
     }
-    setTimeout(() => {
-      router.push("/signin");
-    }, 1500);
   };
 
   return (
@@ -53,6 +71,7 @@ const Signup = () => {
           <IoMdArrowBack className="h-4 w-4" />
           <p className="leading-7">Go back</p>
         </Link>
+
         <Card className="w-full max-w-sm">
           <CardHeader>
             <CardTitle className="text-2xl">Sign Up</CardTitle>
@@ -75,6 +94,7 @@ const Signup = () => {
                     type="email"
                     placeholder="mail@gmail.com"
                     required
+                    disabled={isLoading}
                   />
                   {errors.email && (
                     <p className="text-sm text-red-500">
@@ -89,6 +109,7 @@ const Signup = () => {
                     id="password"
                     type="password"
                     required
+                    disabled={isLoading}
                   />
                   {errors.password && (
                     <p className="text-sm text-red-500">
@@ -100,11 +121,25 @@ const Signup = () => {
             </form>
           </CardContent>
           <CardFooter className="flex-col gap-2">
-            <Button type="submit" form="signin-form" className="w-full">
-              Sign Up
+            <Button
+              type="submit"
+              form="signin-form"
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating account...
+                </>
+              ) : (
+                "Sign Up"
+              )}
             </Button>
             <Link href="/signin">
-              <Button variant="link">Already have an account?</Button>
+              <Button variant="link" disabled={isLoading}>
+                Already have an account?
+              </Button>
             </Link>
           </CardFooter>
         </Card>

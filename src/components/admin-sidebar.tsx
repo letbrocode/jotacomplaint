@@ -82,23 +82,6 @@ export async function AdminSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-
-      <SidebarFooter>
-        <div className="flex items-center justify-between gap-3 p-3">
-          <UserAvatar
-            name={user?.name}
-            email={user?.email}
-            image={user?.image}
-          />
-          <div className="flex-1 overflow-hidden">
-            <p className="truncate text-sm font-medium">{user?.name}</p>
-            <p className="text-muted-foreground truncate text-xs">
-              {user?.email}
-            </p>
-          </div>
-          <Signout />
-        </div>
-      </SidebarFooter>
     </Sidebar>
   );
 }

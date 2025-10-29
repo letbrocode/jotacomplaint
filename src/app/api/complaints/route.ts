@@ -6,39 +6,134 @@ export async function GET() {
   try {
     const session = await auth();
 
-    // If admin — fetch ALL complaints
+    // Admin - fetch ALL complaints with full details
     if (session?.user?.role === "ADMIN") {
       const complaints = await db.complaint.findMany({
+        where: {
+          deletedAt: null, // Exclude soft-deleted complaints
+        },
         include: {
-          user: { select: { id: true, name: true, email: true } },
-          department: true,
-          assignedTo: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
+          department: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+            },
+          },
+          assignedTo: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          _count: {
+            select: {
+              comments: true,
+              activities: true,
+            },
+          },
         },
         orderBy: { createdAt: "desc" },
       });
       return NextResponse.json(complaints);
     }
 
-    // If logged-in regular user — fetch only THEIR complaints
+    // Staff - fetch complaints from their departments or assigned to them
+    if (session?.user?.role === "STAFF" && session.user.id) {
+      const complaints = await db.complaint.findMany({
+        where: {
+          deletedAt: null,
+          OR: [
+            { assignedToId: session.user.id },
+            {
+              department: {
+                staff: {
+                  some: {
+                    id: session.user.id,
+                  },
+                },
+              },
+            },
+          ],
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          department: true,
+          assignedTo: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          _count: {
+            select: {
+              comments: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      return NextResponse.json(complaints);
+    }
+
+    // Regular user - fetch only THEIR complaints
     if (session?.user?.id) {
       const complaints = await db.complaint.findMany({
-        where: { userId: session.user.id },
+        where: {
+          userId: session.user.id,
+          deletedAt: null,
+        },
         include: {
-          user: { select: { id: true, name: true, email: true } },
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          department: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          assignedTo: {
+            select: {
+              name: true,
+            },
+          },
+          _count: {
+            select: {
+              comments: true,
+            },
+          },
         },
         orderBy: { createdAt: "desc" },
       });
       return NextResponse.json(complaints);
     }
 
-    // If no session — public viewer, show all complaints (read-only)
-    const allComplaints = await db.complaint.findMany({
-      include: {
-        user: { select: { name: true } }, // limit data for public viewers
-      },
-      orderBy: { createdAt: "desc" },
-    });
-    return NextResponse.json(allComplaints);
+    // No session - unauthorized
+    return NextResponse.json(
+      { error: "Unauthorized - please login" },
+      { status: 401 },
+    );
   } catch (error) {
     console.error("Error fetching complaints:", error);
     return NextResponse.json(

@@ -19,10 +19,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 
 type FormValues = z.infer<typeof signInSchema>;
 
 const Signin = () => {
+  const [isLoading, setIsLoading] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -30,19 +34,34 @@ const Signin = () => {
   } = useForm<FormValues>({ resolver: zodResolver(signInSchema) });
 
   const router = useRouter();
+
   const onSubmit = async (data: FormValues) => {
-    const response = await signIn("credentials", {
-      email: data.email,
-      password: data.password,
-      callbackUrl: "/dashboard",
-      redirect: false,
-    });
-    if (response?.error) {
-      toast.error("Wrong user/password", {
-        description: "Could not signin",
+    setIsLoading(true);
+
+    try {
+      const response = await signIn("credentials", {
+        email: data.email,
+        password: data.password,
+        callbackUrl: "/dashboard",
+        redirect: false,
       });
-    } else if (response?.ok) {
-      router.push("/dashboard");
+
+      if (response?.error) {
+        toast.error("Invalid credentials", {
+          description: "Please check your email and password",
+        });
+      } else if (response?.ok) {
+        toast.success("Signed in successfully!", {
+          description: "Redirecting to dashboard...",
+        });
+        router.push("/dashboard");
+      }
+    } catch (error) {
+      toast.error("Something went wrong", {
+        description: "Please try again later",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -76,6 +95,7 @@ const Signin = () => {
                     type="email"
                     placeholder="mail@gmail.com"
                     required
+                    disabled={isLoading}
                   />
                   {errors.email && (
                     <p className="text-sm text-red-500">
@@ -90,6 +110,7 @@ const Signin = () => {
                     id="password"
                     type="password"
                     required
+                    disabled={isLoading}
                   />
                   {errors.password && (
                     <p className="text-sm text-red-500">
@@ -101,11 +122,25 @@ const Signin = () => {
             </form>
           </CardContent>
           <CardFooter className="flex-col gap-2">
-            <Button type="submit" form="signin-form" className="w-full">
-              Sign In
+            <Button
+              type="submit"
+              form="signin-form"
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign In"
+              )}
             </Button>
             <Link href="/signup">
-              <Button variant="link">Don&apos;t have an account?</Button>
+              <Button variant="link" disabled={isLoading}>
+                Don&apos;t have an account?
+              </Button>
             </Link>
           </CardFooter>
         </Card>

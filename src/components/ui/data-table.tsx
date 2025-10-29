@@ -102,7 +102,7 @@ export function DataTable({
                 </TableCell>
                 <TableCell>
                   <Button size="sm" variant="outline">
-                    View
+                    <a href={`/admin/complaints/${complaint.id}`}>View</a>
                   </Button>
                 </TableCell>
               </TableRow>
