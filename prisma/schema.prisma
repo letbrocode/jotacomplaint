@@ -7,28 +7,25 @@ generator client {
 
 datasource db {
     provider = "sqlite"
-    // NOTE: When using mysql or sqlserver, uncomment the @db.Text annotations in model Account below
-    // Further reading:
-    // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
-    // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
     url      = env("DATABASE_URL")
 }
 
+// ============================================
+// AUTH MODELS (Next-Auth)
+// ============================================
 
-
-// Necessary for Next auth
 model Account {
     id                       String  @id @default(cuid())
     userId                   String
     type                     String
     provider                 String
     providerAccountId        String
-    refresh_token            String? // @db.Text
-    access_token             String? // @db.Text
+    refresh_token            String?
+    access_token             String?
     expires_at               Int?
     token_type               String?
     scope                    String?
-    id_token                 String? // @db.Text
+    id_token                 String?
     session_state            String?
     user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
     refresh_token_expires_in Int?
@@ -44,22 +41,6 @@ model Session {
     user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model User {
-    id            String    @id @default(cuid())
-    name          String?
-    email         String?   @unique
-    password      String
-    role          Role     @default(USER)
-    complaints Complaint[]
-    assignedComplaints  Complaint[] @relation("AssignedComplaints")
-    createdAt DateTime @default(now())
-    accounts    Account[]
-
-// New relation: Departments the user is part of (as staff)
-  departments   Department[] @relation("DepartmentStaff")
-    sessions Session[]
-}
-
 model VerificationToken {
     identifier String
     token      String   @unique
@@ -68,68 +49,208 @@ model VerificationToken {
     @@unique([identifier, token])
 }
 
+// ============================================
+// USER MODEL
+// ============================================
 
-model Complaint {
-  id          String   @id @default(cuid())
-  title       String
-  details     String
-  category    ComplaintCategory @default(SANITATION)
-  location    String?
-  latitude    Float?
-  longitude   Float?
-  photoUrl    String?
-  priority    Priority @default(MEDIUM)
-  status      Status   @default(PENDING)
-  createdAt   DateTime @default(now())
-  updatedAt DateTime  @updatedAt
+model User {
+    id                  String                @id @default(cuid())
+    name                String?
+    email               String?               @unique
+    password            String
+    role                Role                  @default(USER)
+    isActive            Boolean               @default(true)
+    createdAt           DateTime              @default(now())
+    
+    // Relations
+    accounts            Account[]
+    sessions            Session[]
+    complaints          Complaint[]
+    assignedComplaints  Complaint[]           @relation("AssignedComplaints")
+    departments         Department[]          @relation("DepartmentStaff")
+    comments            Comment[]
+    activities          ComplaintActivity[]
+    notifications       Notification[]
 
-
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-
-  // Who it's assigned to (e.g. admin/department)
-  assignedToId String?
-  assignedTo   User?    @relation("AssignedComplaints", fields: [assignedToId], references: [id])
-
-  // new link to department
-  departmentId Int?
-  department   Department?      @relation(fields: [departmentId], references: [id])
-
-  resolvedAt   DateTime?
+    @@index([role])
+    @@index([email])
 }
+
+// ============================================
+// DEPARTMENT MODEL
+// ============================================
 
 model Department {
-  id          Int         @id @default(autoincrement())
-  name        String      @unique
-  description String?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  complaints  Complaint[]
-  staff       User[]      @relation("DepartmentStaff")
+    id          Int         @id @default(autoincrement())
+    name        String      @unique
+    description String?
+    email       String?
+    phone       String?
+    isActive    Boolean     @default(true)
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+    
+    // Relations
+    complaints  Complaint[]
+    staff       User[]      @relation("DepartmentStaff")
 }
 
+// ============================================
+// COMPLAINT MODEL
+// ============================================
+
+model Complaint {
+    id          String              @id @default(cuid())
+    title       String
+    details     String
+    category    ComplaintCategory   @default(SANITATION)
+    location    String?
+    latitude    Float?
+    longitude   Float?
+    photoUrl    String?
+    priority    Priority            @default(MEDIUM)
+    status      Status              @default(PENDING)
+    createdAt   DateTime            @default(now())
+    updatedAt   DateTime            @updatedAt
+    resolvedAt  DateTime?
+    deletedAt   DateTime?           // Soft delete
+
+    // Foreign Keys
+    userId       String
+    assignedToId String?
+    departmentId Int?
+
+    // Relations
+    user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+    assignedTo   User?               @relation("AssignedComplaints", fields: [assignedToId], references: [id], onDelete: SetNull)
+    department   Department?         @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+    comments     Comment[]
+    activities   ComplaintActivity[]
+    notifications Notification[]
+
+    @@index([status])
+    @@index([userId])
+    @@index([departmentId])
+    @@index([assignedToId])
+    @@index([createdAt])
+    @@index([deletedAt])
+}
+
+// ============================================
+// COMMENT MODEL
+// ============================================
+
+model Comment {
+    id          String      @id @default(cuid())
+    content     String
+    isInternal  Boolean     @default(false)  // Staff-only comments
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+
+    // Foreign Keys
+    complaintId String
+    authorId    String
+
+    // Relations
+    complaint   Complaint   @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+    author      User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+    @@index([complaintId])
+    @@index([authorId])
+}
+
+// ============================================
+// COMPLAINT ACTIVITY LOG
+// ============================================
+
+model ComplaintActivity {
+    id          String         @id @default(cuid())
+    action      ActivityAction
+    oldValue    String?
+    newValue    String?
+    comment     String?
+    createdAt   DateTime       @default(now())
+
+    // Foreign Keys
+    complaintId String
+    userId      String
+
+    // Relations
+    complaint   Complaint      @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+    user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([complaintId])
+    @@index([createdAt])
+}
+
+// ============================================
+// NOTIFICATION MODEL
+// ============================================
+
+model Notification {
+    id          String             @id @default(cuid())
+    title       String
+    message     String
+    type        NotificationType
+    isRead      Boolean            @default(false)
+    createdAt   DateTime           @default(now())
+
+    // Foreign Keys
+    userId      String
+    complaintId String?
+
+    // Relations
+    user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+    complaint   Complaint?         @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+
+    @@index([userId, isRead])
+    @@index([createdAt])
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
 enum Status {
-  PENDING
-  IN_PROGRESS
-  RESOLVED
+    PENDING
+    IN_PROGRESS
+    RESOLVED
 }
 
 enum Role {
-  USER
-  ADMIN
-  STAFF
+    USER
+    ADMIN
+    STAFF
 }
 
 enum ComplaintCategory {
-  ROADS
-  WATER
-  ELECTRICITY
-  SANITATION
-  OTHER
+    ROADS
+    WATER
+    ELECTRICITY
+    SANITATION
+    OTHER
 }
 
 enum Priority {
-  LOW
-  MEDIUM
-  HIGH
+    LOW
+    MEDIUM
+    HIGH
+}
+
+enum ActivityAction {
+    NEW_COMPLAINT
+    STATUS_CHANGED
+    ASSIGNED
+    REASSIGNED
+    COMMENT_ADDED
+    PRIORITY_CHANGED
+    DEPARTMENT_CHANGED
+}
+
+enum NotificationType {
+    COMPLAINT_CREATED
+    COMPLAINT_ASSIGNED
+    STATUS_UPDATED
+    COMMENT_ADDED
+    RESOLVED
 }

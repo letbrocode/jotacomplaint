@@ -13,6 +13,7 @@ import {
 } from "~/components/ui/table";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import type { ComplaintWithRelations } from "~/types/complaint";
 
 export type Complaint = {
   id: string;
@@ -30,7 +31,11 @@ export type Complaint = {
   assignedTo?: string;
 };
 
-export function DataTable({ complaints }: { complaints: Complaint[] }) {
+export function DataTable({
+  complaints,
+}: {
+  complaints: ComplaintWithRelations[];
+}) {
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -86,7 +91,9 @@ export function DataTable({ complaints }: { complaints: Complaint[] }) {
                     {complaint.status.replace("_", " ")}
                   </Badge>
                 </TableCell>
-                <TableCell>{complaint.assignedTo || "Unassigned"}</TableCell>
+                <TableCell>
+                  {complaint.assignedTo?.name || "Unassigned"}
+                </TableCell>
                 <TableCell>
                   {new Date(complaint.createdAt).toLocaleString()}
                 </TableCell>
