@@ -43,7 +43,7 @@ const items = [
   },
   {
     title: "Inbox",
-    url: "#",
+    url: "/dashboard/inbox",
     icon: Inbox,
   },
   {

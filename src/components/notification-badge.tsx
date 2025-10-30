@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { Bell } from "lucide-react";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 
 export function NotificationBadge() {
+  const { data: session } = useSession();
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -29,9 +31,15 @@ export function NotificationBadge() {
     return () => clearInterval(interval);
   }, []);
 
+  // Determine the correct inbox path based on user role
+  const inboxPath =
+    session?.user?.role === "ADMIN" || session?.user?.role === "STAFF"
+      ? "/admin/inbox"
+      : "/dashboard/inbox";
+
   return (
     <Button variant="ghost" size="icon" className="relative" asChild>
-      <a href="/admin/inbox">
+      <a href={inboxPath}>
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
           <Badge
