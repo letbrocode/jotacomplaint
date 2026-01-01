@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "scripts": {
     "seed": "tsx prisma/seed.ts",
     "build": "next build",
@@ -44,6 +47,9 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "leaflet": "^1.9.4",
+    "leaflet-defaulticon-compatibility": "^0.1.2",
+    "leaflet-routing-machine": "^3.2.12",
     "lucide-react": "^0.544.0",
     "next": "^15.2.3",
     "next-auth": "^5.0.0-beta.29",
@@ -52,6 +58,7 @@
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.65.0",
     "react-icons": "^5.5.0",
+    "react-leaflet": "^5.0.0",
     "recharts": "^3.2.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
@@ -60,6 +67,8 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
     "@tailwindcss/postcss": "^4.0.15",
+    "@types/leaflet": "^1.9.21",
+    "@types/leaflet-routing-machine": "^3.2.9",
     "@types/node": "^20.14.10",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

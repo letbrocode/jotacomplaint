@@ -207,9 +207,31 @@ model Notification {
     @@index([createdAt])
 }
 
+// Pre defined locations
+
+model PublicLocation {
+    id          String   @id @default(cuid())
+    name        String
+    type        LocationType
+    latitude    Float
+    longitude   Float
+    description String?
+    isActive    Boolean  @default(true)
+    createdAt   DateTime @default(now())
+
+    @@index([type])
+    @@index([isActive])
+}
+
+
 // ============================================
 // ENUMS
 // ============================================
+enum LocationType {
+    GARBAGE_BIN
+    DUMP_SITE
+    COLLECTION_POINT
+}
 
 enum Status {
     PENDING

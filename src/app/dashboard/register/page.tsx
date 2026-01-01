@@ -30,6 +30,13 @@ import { Loader2, MapPin, Camera, ArrowLeft, CheckCircle } from "lucide-react";
 import Dropzone from "~/components/dropzone";
 import Link from "next/link";
 
+import dynamic from "next/dynamic";
+
+const LocationPickerMap = dynamic(
+  () => import("~/components/maps/LocationPickerMap"),
+  { ssr: false },
+);
+
 // Validation schema
 const complaintSchema = z.object({
   title: z
@@ -69,6 +76,12 @@ export default function RegisterComplaint() {
       photoUrl: "",
     },
   });
+
+  //leaf-let
+  const handleMapChange = (coords: { latitude: number; longitude: number }) => {
+    form.setValue("latitude", coords.latitude.toString());
+    form.setValue("longitude", coords.longitude.toString());
+  };
 
   // Get current location
   const getCurrentLocation = () => {
@@ -368,6 +381,25 @@ export default function RegisterComplaint() {
                   />
                 </div>
               </div>
+              {/* MAP GOES HERE — FULL WIDTH */}
+              <div className="mt-4 overflow-hidden rounded-lg border">
+                <LocationPickerMap
+                  value={
+                    form.watch("latitude") && form.watch("longitude")
+                      ? {
+                          latitude: Number(form.watch("latitude")),
+                          longitude: Number(form.watch("longitude")),
+                        }
+                      : undefined
+                  }
+                  onChange={handleMapChange}
+                  height="300px"
+                />
+              </div>
+
+              <p className="text-muted-foreground mt-2 text-xs">
+                Click on the map to pin the exact location
+              </p>
 
               {/* Photo Upload */}
               <div className="space-y-4 rounded-lg border p-4">
