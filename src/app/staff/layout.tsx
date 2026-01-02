@@ -8,14 +8,14 @@ import { SessionProvider } from "next-auth/react";
 import { auth } from "~/server/auth";
 import { redirect } from "next/navigation";
 
-export default async function DashboardLayout({
+export default async function StaffLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const session = await auth();
 
-  if (!session?.user || session.user.role !== "USER") {
+  if (!session?.user || session.user.role !== "STAFF") {
     redirect("/signin");
   }
 

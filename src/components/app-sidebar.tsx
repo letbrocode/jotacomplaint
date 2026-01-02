@@ -6,6 +6,14 @@ import {
   Pencil,
   Search,
   Settings,
+  FileText,
+  Users,
+  BarChart3,
+  Building2,
+  MapPin,
+  Bell,
+  AlertCircle,
+  Navigation,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -19,51 +27,146 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarHeader,
 } from "~/components/ui/sidebar";
 import Signout from "./signout";
 import { UserAvatar } from "./useravatar";
 import { auth } from "~/server/auth";
 
-// Menu items.
-const items = [
-  {
-    title: "Home",
-    url: "/dashboard",
-    icon: Home,
-  },
-  {
-    title: "My Complaints",
-    url: "/dashboard/complaints",
-    icon: Calendar,
-  },
-  {
-    title: "Register",
-    url: "/dashboard/register",
-    icon: Pencil,
-  },
-  {
-    title: "Inbox",
-    url: "/dashboard/inbox",
-    icon: Inbox,
-  },
-  {
-    title: "Settings",
-    url: "#",
-    icon: Settings,
-  },
-];
-
 export async function AppSidebar() {
   const serverSession = await auth();
   const user = serverSession?.user;
+  const userRole = user?.role;
+
+  // Admin menu items
+  const adminItems = [
+    {
+      title: "Dashboard",
+      url: "/admin",
+      icon: Home,
+    },
+    {
+      title: "Complaints",
+      url: "/admin/complaints",
+      icon: FileText,
+    },
+    {
+      title: "Map View",
+      url: "/admin/map",
+      icon: MapPin,
+    },
+    {
+      title: "Departments",
+      url: "/admin/departments",
+      icon: Building2,
+    },
+    {
+      title: "Users",
+      url: "/admin/users",
+      icon: Users,
+    },
+    {
+      title: "Analytics",
+      url: "/admin/analytics",
+      icon: BarChart3,
+    },
+    {
+      title: "Settings",
+      url: "/admin/settings",
+      icon: Settings,
+    },
+  ];
+
+  // Staff menu items
+  const staffItems = [
+    {
+      title: "Dashboard",
+      url: "/staff",
+      icon: Home,
+    },
+    {
+      title: "My Assignments",
+      url: "/staff/complaints",
+      icon: AlertCircle,
+    },
+    {
+      title: "Map & Navigation",
+      url: "/staff/map",
+      icon: Navigation,
+    },
+    {
+      title: "Notifications",
+      url: "/staff/notifications",
+      icon: Bell,
+    },
+  ];
+
+  // User menu items (default)
+  const userItems = [
+    {
+      title: "Home",
+      url: "/dashboard",
+      icon: Home,
+    },
+    {
+      title: "My Complaints",
+      url: "/dashboard/complaints",
+      icon: Calendar,
+    },
+    {
+      title: "Register Complaint",
+      url: "/dashboard/register",
+      icon: Pencil,
+    },
+    {
+      title: "Notifications",
+      url: "/dashboard/notifications",
+      icon: Bell,
+    },
+    {
+      title: "Settings",
+      url: "/dashboard/settings",
+      icon: Settings,
+    },
+  ];
+
+  // Select menu items based on role
+  const menuItems =
+    userRole === "ADMIN"
+      ? adminItems
+      : userRole === "STAFF"
+        ? staffItems
+        : userItems;
+
+  // Label based on role
+  const sidebarLabel =
+    userRole === "ADMIN"
+      ? "Admin Portal"
+      : userRole === "STAFF"
+        ? "Staff Portal"
+        : "Complaint Dashboard";
+
   return (
     <Sidebar>
+      <SidebarHeader>
+        <div className="flex items-center gap-2 px-4 py-4">
+          <div className="bg-primary flex h-10 w-10 items-center justify-center rounded-lg">
+            <AlertCircle className="text-primary-foreground h-6 w-6" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold">JotaComplaint</span>
+            <span className="text-muted-foreground text-xs">
+              {sidebarLabel}
+            </span>
+          </div>
+        </div>
+      </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Complaint Dashboard</SidebarGroupLabel>
+          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <Link href={item.url}>
@@ -90,6 +193,11 @@ export async function AppSidebar() {
             <p className="text-muted-foreground truncate text-xs">
               {user?.email}
             </p>
+            {userRole && (
+              <p className="text-primary truncate text-xs font-semibold">
+                {userRole}
+              </p>
+            )}
           </div>
           <Signout />
         </div>

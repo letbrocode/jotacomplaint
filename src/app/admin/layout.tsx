@@ -1,20 +1,28 @@
-import { AdminSidebar } from "~/components/admin-sidebar";
+import { AppSidebar } from "~/components/app-sidebar";
 import { SidebarProvider, SidebarTrigger } from "~/components/ui/sidebar";
 import { ModeToggle } from "~/components/mode-toggle";
 import { NotificationBadge } from "~/components/notification-badge";
 import { UserNav } from "~/components/user-nav";
 import { Separator } from "~/components/ui/separator";
 import { SessionProvider } from "next-auth/react";
+import { auth } from "~/server/auth";
+import { redirect } from "next/navigation";
 
-export default function DashboardLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await auth();
+
+  if (!session?.user || session.user.role !== "ADMIN") {
+    redirect("/signin");
+  }
+
   return (
     <SessionProvider>
       <SidebarProvider>
-        <AdminSidebar />
+        <AppSidebar />
         <main className="flex h-screen w-full flex-col">
           {/* Top Header Bar */}
           <header className="bg-background sticky top-0 z-50 flex h-16 items-center gap-4 border-b px-6">
