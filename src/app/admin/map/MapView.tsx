@@ -19,7 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { useRouter } from "next/navigation";
+import AddLocationDialog from "./AddLocationDialog";
 
 // Dynamic import to avoid SSR issues
 const AdminComplaintsMap = dynamic(
@@ -64,6 +65,7 @@ export default function MapView({
   complaints,
   predefinedLocations,
 }: MapViewProps) {
+  const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [priorityFilter, setPriorityFilter] = useState<string>("ALL");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
@@ -99,6 +101,11 @@ export default function MapView({
     inProgress: complaints.filter((c) => c.status === "IN_PROGRESS").length,
     resolved: complaints.filter((c) => c.status === "RESOLVED").length,
     highPriority: complaints.filter((c) => c.priority === "HIGH").length,
+  };
+
+  const handleLocationAdded = () => {
+    // Refresh the page to show the new location
+    router.refresh();
   };
 
   return (
@@ -157,10 +164,11 @@ export default function MapView({
               <CardDescription>
                 {filteredComplaints.length} complaint
                 {filteredComplaints.length !== 1 ? "s" : ""} •{" "}
-                {predefinedLocations.length} predefined location
+                {predefinedLocations.length} public location
                 {predefinedLocations.length !== 1 ? "s" : ""}
               </CardDescription>
             </div>
+            <AddLocationDialog onSuccess={handleLocationAdded} />
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -180,7 +188,6 @@ export default function MapView({
                 <SelectItem value="PENDING">Pending</SelectItem>
                 <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
                 <SelectItem value="RESOLVED">Resolved</SelectItem>
-                <SelectItem value="REJECTED">Rejected</SelectItem>
               </SelectContent>
             </Select>
 
@@ -237,15 +244,17 @@ export default function MapView({
           </div>
 
           {/* Map */}
-          <AdminComplaintsMap
-            complaints={filteredComplaints}
-            predefinedLocations={normalizedLocations}
-            onComplaintClick={(complaint) => {
-              window.location.href = `/dashboard/complaints/${complaint.id}`;
-            }}
-            height="600px"
-            showPredefined={showPredefined}
-          />
+          <div className="relative z-0">
+            <AdminComplaintsMap
+              complaints={filteredComplaints}
+              predefinedLocations={normalizedLocations}
+              onComplaintClick={(complaint) => {
+                window.location.href = `/dashboard/complaints/${complaint.id}`;
+              }}
+              height="600px"
+              showPredefined={showPredefined}
+            />
+          </div>
         </CardContent>
       </Card>
     </div>

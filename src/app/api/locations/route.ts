@@ -46,11 +46,11 @@ export async function POST(req: Request) {
         type,
         latitude,
         longitude,
-        description,
+        description: description || null,
       },
     });
 
-    return NextResponse.json(location);
+    return NextResponse.json(location, { status: 201 });
   } catch (error) {
     console.error("Error creating location:", error);
     return NextResponse.json(

@@ -5,6 +5,7 @@ import {
   Inbox,
   ClipboardList,
   Check,
+  Pin,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -54,6 +55,11 @@ const adminItems = [
     title: "Resolved",
     url: "/admin/resolved",
     icon: Check,
+  },
+  {
+    title: "Maps",
+    url: "/admin/map",
+    icon: Pin,
   },
 ];
 

@@ -14,6 +14,7 @@ import "leaflet/dist/leaflet.css";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { ExternalLink } from "lucide-react";
+import { relative } from "path";
 
 // Fix Leaflet default icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -181,7 +182,13 @@ export default function AdminComplaintsMap({
     <MapContainer
       center={center}
       zoom={12}
-      style={{ height, width: "100%", borderRadius: "0.5rem" }}
+      style={{
+        height,
+        width: "100%",
+        borderRadius: "0.5rem",
+        zIndex: 0,
+        position: "relative",
+      }}
       scrollWheelZoom
     >
       <TileLayer
