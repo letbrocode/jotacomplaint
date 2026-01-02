@@ -14,6 +14,7 @@ import {
   Bell,
   AlertCircle,
   Navigation,
+  Truck,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -151,7 +152,7 @@ export async function AppSidebar() {
       <SidebarHeader>
         <div className="flex items-center gap-2 px-4 py-4">
           <div className="bg-primary flex h-10 w-10 items-center justify-center rounded-lg">
-            <AlertCircle className="text-primary-foreground h-6 w-6" />
+            <Truck className="text-primary-foreground h-6 w-6" />
           </div>
           <div className="flex flex-col">
             <span className="text-sm font-semibold">JotaComplaint</span>

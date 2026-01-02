@@ -176,7 +176,7 @@ export default function UserDashboard() {
             Refresh
           </Button>
           <Button asChild>
-            <Link href="/dashboard/new-complaint">
+            <Link href="/dashboard/register">
               <Plus className="mr-2 h-4 w-4" />
               New Complaint
             </Link>
