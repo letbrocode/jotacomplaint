@@ -23,23 +23,27 @@ export function NotificationBadge() {
       }
     };
 
-    fetchUnreadCount();
+    if (session?.user) {
+      fetchUnreadCount();
 
-    // Poll every 30 seconds for new notifications
-    const interval = setInterval(fetchUnreadCount, 30000);
+      // Poll every 30 seconds for new notifications
+      const interval = setInterval(fetchUnreadCount, 30000);
 
-    return () => clearInterval(interval);
-  }, []);
+      return () => clearInterval(interval);
+    }
+  }, [session]);
 
-  // Determine the correct inbox path based on user role
-  const inboxPath =
-    session?.user?.role === "ADMIN" || session?.user?.role === "STAFF"
-      ? "/admin/inbox"
-      : "/dashboard/inbox";
+  // Determine the correct notifications path based on user role
+  const notificationsPath =
+    session?.user?.role === "ADMIN"
+      ? "/admin/notifications"
+      : session?.user?.role === "STAFF"
+        ? "/staff/notifications"
+        : "/dashboard/notifications";
 
   return (
     <Button variant="ghost" size="icon" className="relative" asChild>
-      <a href={inboxPath}>
+      <a href={notificationsPath}>
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
           <Badge
