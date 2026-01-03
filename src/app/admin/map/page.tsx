@@ -1,7 +1,15 @@
+import { auth } from "~/server/auth";
+import { redirect } from "next/navigation";
 import { db } from "~/server/db";
 import MapView from "./MapView";
 
 export default async function AdminMapPage() {
+  const session = await auth();
+
+  if (!session?.user || session.user.role !== "ADMIN") {
+    redirect("/signin");
+  }
+
   // Fetch all complaints with locations
   const complaints = await db.complaint.findMany({
     where: {
@@ -23,7 +31,7 @@ export default async function AdminMapPage() {
     },
   });
 
-  // Fetch public locations (changed from predefinedLocation)
+  // Fetch public locations
   const publicLocations = await db.publicLocation.findMany({
     where: {
       isActive: true,
@@ -42,14 +50,16 @@ export default async function AdminMapPage() {
       longitude: c.longitude as number,
     }));
 
-  // Add address field (null for public locations) to match component type
+  // Map public locations to match the component's expected type
   const locationsWithAddress = publicLocations.map((l) => ({
-    ...l,
-    address: null as string | null,
+    id: l.id,
+    name: l.name,
+    type: l.type,
+    latitude: l.latitude,
+    longitude: l.longitude,
+    // address: l.address ?? null,
+    description: l.description ?? null,
   }));
-
-  console.log("📍 Complaints with locations:", validComplaints.length);
-  console.log("📍 Public locations:", locationsWithAddress.length);
 
   return (
     <div className="space-y-6">
@@ -63,6 +73,7 @@ export default async function AdminMapPage() {
       <MapView
         complaints={validComplaints}
         predefinedLocations={locationsWithAddress}
+        userRole="ADMIN"
       />
     </div>
   );

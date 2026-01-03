@@ -59,11 +59,13 @@ type PredefinedLocation = {
 type MapViewProps = {
   complaints: Complaint[];
   predefinedLocations: PredefinedLocation[];
+  userRole?: "ADMIN" | "STAFF" | "USER";
 };
 
 export default function MapView({
   complaints,
   predefinedLocations,
+  userRole = "ADMIN",
 }: MapViewProps) {
   const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -168,7 +170,9 @@ export default function MapView({
                 {predefinedLocations.length !== 1 ? "s" : ""}
               </CardDescription>
             </div>
-            <AddLocationDialog onSuccess={handleLocationAdded} />
+            {userRole === "ADMIN" && (
+              <AddLocationDialog onSuccess={handleLocationAdded} />
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -248,11 +252,9 @@ export default function MapView({
             <AdminComplaintsMap
               complaints={filteredComplaints}
               predefinedLocations={normalizedLocations}
-              onComplaintClick={(complaint) => {
-                window.location.href = `/dashboard/complaints/${complaint.id}`;
-              }}
               height="600px"
               showPredefined={showPredefined}
+              userRole={userRole}
             />
           </div>
         </CardContent>

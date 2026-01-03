@@ -33,6 +33,7 @@ import {
 import Signout from "./signout";
 import { UserAvatar } from "./useravatar";
 import { auth } from "~/server/auth";
+import { IoMdPeople } from "react-icons/io";
 
 export async function AppSidebar() {
   const serverSession = await auth();
@@ -62,15 +63,16 @@ export async function AppSidebar() {
       icon: Building2,
     },
     {
+      title: "Staff",
+      url: "/admin/staff",
+      icon: IoMdPeople,
+    },
+    {
       title: "Users",
       url: "/admin/users",
       icon: Users,
     },
-    {
-      title: "Analytics",
-      url: "/admin/analytics",
-      icon: BarChart3,
-    },
+
     {
       title: "Settings",
       url: "/admin/settings",

@@ -6,6 +6,7 @@ import {
   TileLayer,
   Marker,
   Popup,
+  Tooltip,
   LayerGroup,
   useMap,
 } from "react-leaflet";
@@ -14,7 +15,6 @@ import "leaflet/dist/leaflet.css";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { ExternalLink } from "lucide-react";
-import { relative } from "path";
 
 // Fix Leaflet default icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -133,6 +133,7 @@ type AdminComplaintsMapProps = {
   onComplaintClick?: (complaint: Complaint) => void;
   height?: string;
   showPredefined?: boolean;
+  userRole?: "ADMIN" | "STAFF" | "USER";
 };
 
 // Helper component to fit bounds
@@ -170,6 +171,7 @@ export default function AdminComplaintsMap({
   onComplaintClick,
   height = "600px",
   showPredefined = true,
+  userRole = "ADMIN",
 }: AdminComplaintsMapProps) {
   const center: [number, number] =
     complaints.length > 0
@@ -177,6 +179,16 @@ export default function AdminComplaintsMap({
       : predefinedLocations.length > 0
         ? [predefinedLocations[0]!.latitude, predefinedLocations[0]!.longitude]
         : [19.076, 72.8777]; // Default to Mumbai
+
+  // Get correct complaint URL based on role
+  const getComplaintUrl = (complaintId: string) => {
+    if (userRole === "ADMIN") {
+      return `/admin/complaints/${complaintId}`;
+    } else if (userRole === "STAFF") {
+      return `/staff/complaints/${complaintId}`;
+    }
+    return `/dashboard/complaints/${complaintId}`;
+  };
 
   return (
     <MapContainer
@@ -212,10 +224,20 @@ export default function AdminComplaintsMap({
                 "#6b7280",
               complaint.priority,
             )}
-            eventHandlers={{
-              click: () => onComplaintClick?.(complaint),
-            }}
           >
+            {/* Tooltip shows on hover */}
+            <Tooltip direction="top" offset={[0, -10]} opacity={0.9}>
+              <div className="text-sm">
+                <p className="font-semibold">{complaint.title}</p>
+                <div className="mt-1 flex gap-1">
+                  <span className="text-xs">{complaint.priority}</span>
+                  <span className="text-xs">•</span>
+                  <span className="text-xs">{complaint.status}</span>
+                </div>
+              </div>
+            </Tooltip>
+
+            {/* Popup shows on click */}
             <Popup maxWidth={300}>
               <div className="space-y-3 p-2">
                 <div>
@@ -274,7 +296,9 @@ export default function AdminComplaintsMap({
                 <Button
                   size="sm"
                   className="w-full"
-                  onClick={() => onComplaintClick?.(complaint)}
+                  onClick={() => {
+                    window.location.href = getComplaintUrl(complaint.id);
+                  }}
                 >
                   <ExternalLink className="mr-2 h-3 w-3" />
                   View Details
@@ -294,6 +318,15 @@ export default function AdminComplaintsMap({
               position={[location.latitude, location.longitude]}
               icon={createLocationIcon(location.type)}
             >
+              {/* Tooltip for hover */}
+              <Tooltip direction="top" offset={[0, -18]} opacity={0.9}>
+                <div className="text-sm">
+                  <p className="font-semibold">{location.name}</p>
+                  <p className="text-xs">{location.type.replace(/_/g, " ")}</p>
+                </div>
+              </Tooltip>
+
+              {/* Popup for click */}
               <Popup maxWidth={280}>
                 <div className="space-y-2 p-2">
                   <div>
