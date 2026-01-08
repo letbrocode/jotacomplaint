@@ -68,7 +68,11 @@ export const authConfig = {
           if (!validPassword) {
             return null;
           }
-          return user;
+          return {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+          };
         } catch (error) {
           if (error instanceof ZodError) {
             return null;

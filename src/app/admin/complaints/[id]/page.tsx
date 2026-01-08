@@ -29,11 +29,11 @@ import {
   Image as ImageIcon,
   Send,
 } from "lucide-react";
-import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
 import type { Complaint, User as PrismaUser, Department } from "@prisma/client";
 import Image from "next/image";
 import ImageModal from "~/components/image-modal";
+import { toast } from "sonner";
 
 type ComplaintWithDetails = Complaint & {
   user: PrismaUser;
