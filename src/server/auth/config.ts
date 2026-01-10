@@ -47,8 +47,8 @@ export const authConfig = {
   providers: [
     Credentials({
       credentials: {
-        email: {},
-        password: {},
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
       },
       authorize: async (credentials) => {
         try {
@@ -59,14 +59,8 @@ export const authConfig = {
               email: email,
             },
           });
-          if (!user) {
-            throw new Error("User not found");
-          }
-
-          const validPassword = await bcrypt.compare(password, user.password);
-
-          if (!validPassword) {
-            return null;
+          if (!user || !(await bcrypt.compare(password, user.password))) {
+            return null; // Triggers CredentialsSignin error automatically
           }
           return {
             id: user.id,
@@ -91,12 +85,14 @@ export const authConfig = {
      * @see https://next-auth.js.org/providers/github
      */
   ],
+
   pages: {
     signIn: "/signin",
   },
   secret: env.AUTH_SECRET,
   session: {
     strategy: "jwt",
+    maxAge: 15 * 24 * 60 * 60,
   },
   adapter: PrismaAdapter(db),
   callbacks: {

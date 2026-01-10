@@ -7,12 +7,8 @@ export default auth((req) => {
   const userRole = req.auth?.user?.role;
   const { pathname } = req.nextUrl;
 
-  const isPublicRoute =
-    pathname === "/" ||
-    pathname === "/signin" ||
-    pathname === "/signup" ||
-    pathname === "/unauthorized" ||
-    pathname.startsWith("/api/auth");
+  const publicRoutes = ["/", "/signin", "/signup", "/unauthorized"];
+  const isPublicRoute = publicRoutes.includes(pathname);
 
   if (!isLoggedIn && !isPublicRoute) {
     const signInUrl = new URL("/signin", req.url);

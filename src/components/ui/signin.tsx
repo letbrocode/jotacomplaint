@@ -18,14 +18,17 @@ import { signInSchema } from "~/schemas/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 type FormValues = z.infer<typeof signInSchema>;
 
 const Signin = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const searchParams = useSearchParams();
+  const error = searchParams.get("error");
 
   const {
     register,
@@ -33,33 +36,19 @@ const Signin = () => {
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(signInSchema) });
 
-  const router = useRouter();
-
   const onSubmit = async (data: FormValues) => {
     setIsLoading(true);
 
     try {
-      const response = await signIn("credentials", {
+      await signIn("credentials", {
         email: data.email,
         password: data.password,
-        callbackUrl: "/dashboard",
-        redirect: false,
       });
-
-      if (response?.error) {
-        toast.error("Invalid credentials", {
-          description: "Please check your email and password",
-        });
-      } else if (response?.ok) {
-        toast.success("Signed in successfully!", {
-          description: "Redirecting to dashboard...",
-        });
-        router.push("/dashboard");
-      }
     } catch (error) {
       toast.error("Something went wrong", {
         description: "Please try again later",
       });
+      setIsLoading(false);
     } finally {
       setIsLoading(false);
     }
@@ -105,17 +94,31 @@ const Signin = () => {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="password">Password</Label>
-                  <Input
-                    {...register("password")}
-                    id="password"
-                    type="password"
-                    required
-                    disabled={isLoading}
-                  />
+                  <div className="relative">
+                    <Input
+                      {...register("password")}
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      required
+                      disabled={isLoading}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute top-2 right-2 h-6 w-6"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff /> : <Eye />}
+                    </Button>
+                  </div>
                   {errors.password && (
                     <p className="text-sm text-red-500">
                       {errors.password.message}
                     </p>
+                  )}
+                  {error === "CredentialsSignin" && (
+                    <p className="text-sm text-red-500">Invalid credentials</p>
                   )}
                 </div>
               </div>

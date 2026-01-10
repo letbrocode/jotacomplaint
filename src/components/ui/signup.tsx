@@ -20,12 +20,13 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { signup } from "~/app/actions/auth";
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 type FormValues = z.infer<typeof signInSchema>;
 
 const Signup = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -51,10 +52,7 @@ const Signup = () => {
           description: "Redirecting to sign in...",
         });
 
-        // Keep loading state while redirecting
-        setTimeout(() => {
-          router.push("/signin");
-        }, 1500);
+        router.push("/signin");
       }
     } catch (error) {
       toast.error("Something went wrong", {
@@ -104,13 +102,24 @@ const Signup = () => {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="password">Password</Label>
-                  <Input
-                    {...register("password")}
-                    id="password"
-                    type="password"
-                    required
-                    disabled={isLoading}
-                  />
+                  <div className="relative">
+                    <Input
+                      {...register("password")}
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      required
+                      disabled={isLoading}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute top-2 right-2 h-6 w-6"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff /> : <Eye />}
+                    </Button>
+                  </div>
                   {errors.password && (
                     <p className="text-sm text-red-500">
                       {errors.password.message}

@@ -4,6 +4,7 @@ import { type Metadata } from "next";
 import { Geist } from "next/font/google";
 import { ThemeProvider } from "~/components/theme-provider";
 import { ModeToggle } from "~/components/mode-toggle";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "Jotacomplaint",
@@ -29,6 +30,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
+          <Toaster position="top-right" richColors closeButton />
         </ThemeProvider>
       </body>
     </html>
