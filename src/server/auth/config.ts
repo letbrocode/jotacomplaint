@@ -51,28 +51,24 @@ export const authConfig = {
         password: { label: "Password", type: "password" },
       },
       authorize: async (credentials) => {
-        try {
-          const { email, password } =
-            await signInSchema.parseAsync(credentials);
-          const user = await db.user.findUnique({
-            where: {
-              email: email,
-            },
-          });
-          if (!user || !(await bcrypt.compare(password, user.password))) {
-            return null; // Triggers CredentialsSignin error automatically
-          }
-          return {
-            id: user.id,
-            email: user.email,
-            role: user.role,
-          };
-        } catch (error) {
-          if (error instanceof ZodError) {
-            return null;
-          }
+        const parsed = signInSchema.safeParse(credentials);
+        if (!parsed.success) return null;
+
+        const { email, password } = parsed.data;
+
+        const user = await db.user.findUnique({
+          where: { email: email.toLowerCase() },
+        });
+
+        if (!user || !(await bcrypt.compare(password, user.password))) {
+          return null;
         }
-        return null;
+
+        return {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+        };
       },
     }),
     /**
