@@ -18,7 +18,7 @@ export async function POST(
     const data = await req.json();
     const { content, isInternal } = data;
 
-    if (!content || !content.trim()) {
+    if (!content?.trim()) {
       return NextResponse.json(
         { error: "Comment content is required" },
         { status: 400 },

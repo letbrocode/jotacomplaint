@@ -90,11 +90,11 @@ export default function StaffDialog({
   useEffect(() => {
     if (open) {
       if (staff) {
-        const deptIds = staff.departments?.map((d) => d.id) || [];
+        const deptIds = staff.departments?.map((d) => d.id) ?? [];
         setSelectedDepartments(deptIds);
         form.reset({
-          name: staff.name || "",
-          email: staff.email || "",
+          name: staff.name ?? "",
+          email: staff.email ?? "",
           password: "",
           role: staff.role,
           isActive: staff.isActive,
@@ -149,11 +149,11 @@ export default function StaffDialog({
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to save staff member");
+        const error = (await res.json()) as { error?: string };
+        throw new Error(error.error ?? "Failed to save staff member");
       }
 
-      const savedStaff = await res.json();
+      const savedStaff = (await res.json()) as StaffWithRelations;
 
       toast.success(
         isEditing

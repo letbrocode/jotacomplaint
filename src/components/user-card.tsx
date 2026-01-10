@@ -67,7 +67,7 @@ export default function UserCard({
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
           <div>
-            <h3 className="text-lg font-semibold">{user.name || "No Name"}</h3>
+            <h3 className="text-lg font-semibold">{user.name ?? "No Name"}</h3>
             <div className="flex items-center gap-2">
               <Badge
                 variant={user.isActive ? "default" : "secondary"}

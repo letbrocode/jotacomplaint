@@ -13,7 +13,7 @@ import { Label } from "./label";
 import { Input } from "./input";
 import { Button } from "./button";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { type z } from "zod";
 import { signInSchema } from "~/schemas/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
@@ -45,6 +45,7 @@ const Signin = () => {
         password: data.password,
       });
     } catch (error) {
+      console.log(error);
       toast.error("Something went wrong", {
         description: "Please try again later",
       });

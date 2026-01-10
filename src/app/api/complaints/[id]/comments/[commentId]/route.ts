@@ -16,7 +16,7 @@ export async function PATCH(
 
     const { content } = await req.json();
 
-    if (!content || !content.trim()) {
+    if (!content?.trim()) {
       return NextResponse.json(
         { error: "Comment content is required" },
         { status: 400 },

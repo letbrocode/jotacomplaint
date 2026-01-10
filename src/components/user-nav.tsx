@@ -26,8 +26,8 @@ export function UserNav() {
       .map((n) => n[0])
       .join("")
       .toUpperCase()
-      .slice(0, 2) ||
-    session.user.email?.[0]?.toUpperCase() ||
+      .slice(0, 2) ??
+    session.user.email?.[0]?.toUpperCase() ??
     "U";
 
   return (
@@ -45,7 +45,7 @@ export function UserNav() {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm leading-none font-medium">
-              {session.user.name || "User"}
+              {session.user.name ?? "User"}
             </p>
             <p className="text-muted-foreground text-xs leading-none">
               {session.user.email}

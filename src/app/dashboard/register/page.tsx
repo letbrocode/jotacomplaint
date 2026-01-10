@@ -31,6 +31,7 @@ import Dropzone from "~/components/dropzone";
 import Link from "next/link";
 
 import dynamic from "next/dynamic";
+import Image from "next/image";
 
 const LocationPickerMap = dynamic(
   () => import("~/components/maps/LocationPickerMap"),
@@ -173,7 +174,7 @@ export default function RegisterComplaint() {
             Submit a Complaint
           </h2>
           <p className="text-muted-foreground">
-            Report an issue in your area and we'll take care of it
+            Report an issue in your area and we&apos;ll take care of it
           </p>
         </div>
       </div>
@@ -422,7 +423,7 @@ export default function RegisterComplaint() {
 
                 {photoUrl && (
                   <div className="relative h-48 w-full overflow-hidden rounded-lg border">
-                    <img
+                    <Image
                       src={photoUrl}
                       alt="Uploaded complaint"
                       className="h-full w-full object-cover"

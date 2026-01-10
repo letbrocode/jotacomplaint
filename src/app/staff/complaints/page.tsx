@@ -13,27 +13,6 @@ import { Button } from "~/components/ui/button";
 import { MapPin, Navigation, Clock, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
-// Add type definition
-type Complaint = {
-  id: string;
-  title: string;
-  details: string;
-  category: string;
-  priority: string;
-  status: string;
-  latitude: number | null;
-  longitude: number | null;
-  location: string | null;
-  createdAt: Date;
-  user: {
-    name: string | null;
-    email: string;
-  };
-  department: {
-    name: string;
-  } | null;
-};
-
 export default async function StaffComplaintsPage() {
   const session = await auth();
 

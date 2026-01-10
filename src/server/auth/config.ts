@@ -3,7 +3,6 @@ import type { Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { type DefaultSession, type NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { ZodError } from "zod/v4";
 import { env } from "~/env";
 import { signInSchema } from "~/schemas/auth";
 

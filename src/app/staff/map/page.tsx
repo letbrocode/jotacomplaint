@@ -48,8 +48,8 @@ export default async function StaffMapPage() {
     .filter((c) => c.latitude !== null && c.longitude !== null)
     .map((c) => ({
       ...c,
-      latitude: c.latitude as number,
-      longitude: c.longitude as number,
+      latitude: c.latitude!,
+      longitude: c.longitude!,
     }));
 
   // Map public locations to match the component's expected type

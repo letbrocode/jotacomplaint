@@ -13,7 +13,7 @@ import { Label } from "./label";
 import { Input } from "./input";
 import { Button } from "./button";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { type z } from "zod";
 import { signInSchema } from "~/schemas/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -55,6 +55,7 @@ const Signup = () => {
         router.push("/signin");
       }
     } catch (error) {
+      console.log(error);
       toast.error("Something went wrong", {
         description: "Please try again later",
       });

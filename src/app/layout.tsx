@@ -3,7 +3,6 @@ import "~/styles/globals.css";
 import { type Metadata } from "next";
 import { Geist } from "next/font/google";
 import { ThemeProvider } from "~/components/theme-provider";
-import { ModeToggle } from "~/components/mode-toggle";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {

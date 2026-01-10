@@ -15,7 +15,7 @@ export function NotificationBadge() {
       try {
         const res = await fetch("/api/notifications/unread-count");
         if (res.ok) {
-          const data = await res.json();
+          const data = (await res.json()) as { count: number };
           setUnreadCount(data.count);
         }
       } catch (error) {
@@ -24,10 +24,12 @@ export function NotificationBadge() {
     };
 
     if (session?.user) {
-      fetchUnreadCount();
+      void fetchUnreadCount();
 
       // Poll every 30 seconds for new notifications
-      const interval = setInterval(fetchUnreadCount, 30000);
+      const interval = setInterval(() => {
+        void fetchUnreadCount();
+      }, 30000);
 
       return () => clearInterval(interval);
     }

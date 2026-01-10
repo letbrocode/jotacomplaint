@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -17,7 +17,9 @@ import { Badge } from "~/components/ui/badge";
 import { ExternalLink } from "lucide-react";
 
 // Fix Leaflet default icon issue
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)
+  ._getIconUrl;
+
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -75,7 +77,7 @@ const createLocationIcon = (type: string) => {
     className: "custom-marker",
     html: `
       <div style="
-        background-color: ${colors[type] || "#10b981"};
+        background-color: ${colors[type] ?? "#10b981"};
         width: 36px;
         height: 36px;
         border-radius: 8px;
@@ -85,7 +87,7 @@ const createLocationIcon = (type: string) => {
         justify-content: center;
         box-shadow: 0 3px 8px rgba(0,0,0,0.4);
         font-size: 18px;
-      ">${icons[type] || "📍"}</div>
+      ">${icons[type] ?? "📍"}</div>
     `,
     iconSize: [36, 36],
     iconAnchor: [18, 18],
@@ -168,7 +170,6 @@ function MapBoundsUpdater({
 export default function AdminComplaintsMap({
   complaints,
   predefinedLocations = [],
-  onComplaintClick,
   height = "600px",
   showPredefined = true,
   userRole = "ADMIN",

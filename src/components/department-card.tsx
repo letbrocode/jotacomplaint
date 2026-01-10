@@ -92,11 +92,11 @@ export default function DepartmentCard({
           <div className="text-muted-foreground flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1">
               <Users className="h-4 w-4" />
-              <span>{department._count?.staff || 0} staff</span>
+              <span>{department._count?.staff ?? 0} staff</span>
             </div>
             <div className="flex items-center gap-1">
               <AlertTriangle className="h-4 w-4" />
-              <span>{department._count?.complaints || 0} complaints</span>
+              <span>{department._count?.complaints ?? 0} complaints</span>
             </div>
           </div>
         </div>

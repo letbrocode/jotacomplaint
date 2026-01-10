@@ -178,12 +178,12 @@ export default function ResolvedComplaintCard({
           )}
           <span className="flex items-center gap-1">
             <UserIcon className="h-3.5 w-3.5" />
-            {complaint.user.name || "Anonymous"}
+            {complaint.user.name ?? "Anonymous"}
           </span>
           {complaint.assignedTo && (
             <span className="flex items-center gap-1">
               Resolved by:{" "}
-              {complaint.assignedTo.name || complaint.assignedTo.email}
+              {complaint.assignedTo.name ?? complaint.assignedTo.email}
             </span>
           )}
           {complaint._count?.comments !== undefined && (

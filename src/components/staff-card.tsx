@@ -5,7 +5,6 @@ import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import {
   User,
-  Mail,
   Shield,
   Building2,
   AlertTriangle,
@@ -44,7 +43,7 @@ export default function StaffCard({ staff, onEdit, onDelete }: StaffCardProps) {
             </div>
             <div>
               <CardTitle className="text-lg">
-                {staff.name || "Unnamed"}
+                {staff.name ?? "Unnamed"}
               </CardTitle>
               <p className="text-muted-foreground text-sm">{staff.email}</p>
             </div>
@@ -96,7 +95,7 @@ export default function StaffCard({ staff, onEdit, onDelete }: StaffCardProps) {
           <div className="text-muted-foreground flex items-center gap-2 text-sm">
             <AlertTriangle className="h-4 w-4" />
             <span>
-              {staff._count?.assignedComplaints || 0} active assignments
+              {staff._count?.assignedComplaints ?? 0} active assignments
             </span>
           </div>
         )}

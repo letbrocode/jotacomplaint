@@ -100,9 +100,9 @@ export default function DepartmentDialog({
       // Clean up empty strings to null
       const payload = {
         ...values,
-        description: values.description || null,
-        email: values.email || null,
-        phone: values.phone || null,
+        description: values.description ?? null,
+        email: values.email ?? null,
+        phone: values.phone ?? null,
       };
 
       const res = await fetch(url, {
@@ -112,11 +112,11 @@ export default function DepartmentDialog({
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to save department");
+        const error = (await res.json()) as { error?: string };
+        throw new Error(error.error ?? "Failed to save department");
       }
 
-      const savedDepartment = await res.json();
+      const savedDepartment = (await res.json()) as Department;
 
       toast.success(
         isEditing
@@ -238,7 +238,7 @@ export default function DepartmentDialog({
                   <div className="space-y-0.5">
                     <FormLabel>Active Status</FormLabel>
                     <FormDescription>
-                      Inactive departments won't appear in dropdowns
+                      Inactive departments won&apos;t appear in dropdowns
                     </FormDescription>
                   </div>
                   <FormControl>
