@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { db } from "~/server/db";
 import { auth } from "~/server/auth";
+import { ActivityAction, Status } from "@prisma/client";
+
+type UpdateStatusBody = {
+  status: Status;
+};
 
 export async function PATCH(
   req: Request,
@@ -16,8 +21,10 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { status } = await req.json();
+    const body = (await req.json()) as UpdateStatusBody;
+    const { status } = body;
 
+    // Update status
     const complaint = await db.complaint.update({
       where: { id: params.id },
       data: {
@@ -31,7 +38,7 @@ export async function PATCH(
       data: {
         complaintId: params.id,
         userId: session.user.id,
-        action: "STATUS_CHANGED",
+        action: ActivityAction.STATUS_CHANGED,
         newValue: status,
       },
     });

@@ -15,7 +15,7 @@ export default function UnauthorizedPage() {
         </CardHeader>
         <CardContent className="space-y-4 text-center">
           <p className="text-muted-foreground">
-            You don't have permission to access this page.
+            You don&apos;t have permission to access this page.
           </p>
           <div className="flex justify-center gap-3">
             <Button asChild variant="outline">

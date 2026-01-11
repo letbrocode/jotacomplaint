@@ -63,7 +63,7 @@ export default async function StaffDashboardPage() {
           Welcome back, {session.user.name}!
         </h2>
         <p className="text-muted-foreground">
-          Here's an overview of your assigned complaints
+          Here&apos;s an overview of your assigned complaints
         </p>
       </div>
 

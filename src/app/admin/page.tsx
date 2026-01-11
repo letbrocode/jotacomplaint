@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Button } from "~/components/ui/button";
@@ -51,7 +51,7 @@ function DashboardSkeleton() {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
+        {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} className="h-32 w-full" />
         ))}
       </div>
@@ -70,7 +70,7 @@ export default function AdminDashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
-  const fetchComplaints = async () => {
+  const fetchComplaints = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -80,7 +80,7 @@ export default function AdminDashboardPage() {
         throw new Error(`Failed to fetch complaints: ${res.status}`);
       }
 
-      const data: ComplaintWithRelations[] = await res.json();
+      const data = (await res.json()) as ComplaintWithRelations[];
       setComplaints(data);
       setLastUpdated(new Date());
     } catch (error) {
@@ -89,11 +89,11 @@ export default function AdminDashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchComplaints();
-  }, []);
+    void fetchComplaints();
+  }, [fetchComplaints]);
 
   // Memoized statistics with trends
   const stats = useMemo(() => {
@@ -149,9 +149,10 @@ export default function AdminDashboardPage() {
 
     complaints.forEach((c) => {
       const date = new Date(c.createdAt);
-      const dateKey = date.toISOString().split("T")[0]; // YYYY-MM-DD format
+      const dateKey = date.toISOString().split("T")[0];
       if (dateKey) {
-        complaintsByDate[dateKey] = (complaintsByDate[dateKey] || 0) + 1;
+        complaintsByDate[dateKey] ??= 0;
+        complaintsByDate[dateKey] += 1;
       }
     });
 
@@ -189,10 +190,8 @@ export default function AdminDashboardPage() {
     > = {};
 
     complaints.forEach((c) => {
-      const dept = c.department?.name || "Unassigned";
-      if (!departmentsMap[dept]) {
-        departmentsMap[dept] = { Pending: 0, "In Progress": 0, Resolved: 0 };
-      }
+      const dept = c.department?.name ?? "Unassigned";
+      departmentsMap[dept] ??= { Pending: 0, "In Progress": 0, Resolved: 0 };
 
       if (c.status === "PENDING") departmentsMap[dept].Pending++;
       if (c.status === "IN_PROGRESS") departmentsMap[dept]["In Progress"]++;
@@ -205,7 +204,7 @@ export default function AdminDashboardPage() {
           department.length > 15 ? department.slice(0, 15) + "..." : department,
         ...values,
       }))
-      .slice(0, 6); // Show top 6 departments
+      .slice(0, 6);
   }, [complaints]);
 
   const recentComplaints = useMemo(() => complaints.slice(0, 5), [complaints]);
@@ -449,7 +448,7 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Pie Chart */}
+        {/* Pie Chart - FIXED */}
         <Card className="lg:col-span-3">
           <CardHeader>
             <CardTitle>Status Distribution</CardTitle>
@@ -469,24 +468,17 @@ export default function AdminDashboardPage() {
                       cx="50%"
                       cy="50%"
                       outerRadius={80}
-                      label={(props: any) => `${props.name}: ${props.value}`}
-                      labelLine={true}
+                      labelLine={false}
                     >
-                      {statusData.map((_, index) => (
+                      {statusData.map((entry, index) => (
                         <Cell
                           key={`cell-${index}`}
                           fill={CHART_COLORS[index % CHART_COLORS.length]}
                         />
                       ))}
                     </Pie>
+                    <Tooltip />
                     <Legend />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "white",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "8px",
-                      }}
-                    />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
@@ -605,16 +597,16 @@ export default function AdminDashboardPage() {
                         </Badge>
                       </div>
                       <p className="text-muted-foreground line-clamp-1 text-sm">
-                        {complaint.details}
+                        {complaint.details ?? ""}
                       </p>
                       <div className="text-muted-foreground flex flex-wrap items-center gap-3 text-xs">
                         <div className="flex items-center gap-1">
                           <Users className="h-3 w-3" />
-                          {complaint.user.name || "Unknown"}
+                          {complaint.user?.name ?? "Unknown"}
                         </div>
                         <div className="flex items-center gap-1">
                           <Building2 className="h-3 w-3" />
-                          {complaint.department?.name || "Unassigned"}
+                          {complaint.department?.name ?? "Unassigned"}
                         </div>
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />

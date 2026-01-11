@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { db } from "~/server/db";
 import { auth } from "~/server/auth";
 
+type UpdateCommentBody = {
+  content: string;
+};
+
 // PATCH - Update a comment
 export async function PATCH(
   req: Request,
@@ -14,16 +18,16 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { content } = await req.json();
+    const body = (await req.json()) as UpdateCommentBody;
+    const content = body.content?.trim();
 
-    if (!content?.trim()) {
+    if (!content || content.length < 1) {
       return NextResponse.json(
         { error: "Comment content is required" },
         { status: 400 },
       );
     }
 
-    // Check if comment exists and belongs to user
     const comment = await db.comment.findUnique({
       where: { id: params.commentId },
     });
@@ -41,7 +45,7 @@ export async function PATCH(
 
     const updatedComment = await db.comment.update({
       where: { id: params.commentId },
-      data: { content: content.trim() },
+      data: { content },
       include: {
         author: {
           select: {
@@ -54,8 +58,8 @@ export async function PATCH(
     });
 
     return NextResponse.json(updatedComment);
-  } catch (error) {
-    console.error("Error updating comment:", error);
+  } catch (err) {
+    console.error("Error updating comment:", err);
     return NextResponse.json(
       { error: "Failed to update comment" },
       { status: 500 },
@@ -65,7 +69,7 @@ export async function PATCH(
 
 // DELETE - Delete a comment
 export async function DELETE(
-  req: Request,
+  _req: Request,
   { params }: { params: { id: string; commentId: string } },
 ) {
   try {
@@ -95,8 +99,8 @@ export async function DELETE(
     });
 
     return NextResponse.json({ message: "Comment deleted" });
-  } catch (error) {
-    console.error("Error deleting comment:", error);
+  } catch (err) {
+    console.error("Error deleting comment:", err);
     return NextResponse.json(
       { error: "Failed to delete comment" },
       { status: 500 },

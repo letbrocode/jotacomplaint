@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -18,22 +18,18 @@ import {
   AlertTriangle,
   CheckCircle,
   Search,
-  Calendar,
   TrendingUp,
   Clock,
   Filter,
 } from "lucide-react";
-import type { Complaint, User, Department } from "@prisma/client";
+import type { Department } from "@prisma/client";
+import type { ComplaintWithRelations } from "~/types/complaint"; // Fixed: Use existing type
 import ResolvedComplaintCard from "~/components/resolved-complaint-card";
 import ResolutionAnalytics from "~/components/resolution-analytics";
 
-type ResolvedComplaintWithRelations = Complaint & {
-  user: User;
-  department: Department | null;
-  assignedTo?: User | null;
-  _count?: {
-    comments?: number;
-  };
+// Inline type definition since it doesn't exist in types/complaint
+type ResolvedComplaintWithRelations = ComplaintWithRelations & {
+  resolvedAt: Date | null;
 };
 
 export default function ResolvedComplaintsPage() {
@@ -51,7 +47,7 @@ export default function ResolvedComplaintsPage() {
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [timeRangeFilter, setTimeRangeFilter] = useState("all");
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -65,8 +61,9 @@ export default function ResolvedComplaintsPage() {
         throw new Error("Failed to fetch resolved complaints");
       if (!deptRes.ok) throw new Error("Failed to fetch departments");
 
-      const complaintsData = await complaintsRes.json();
-      const deptData = await deptRes.json();
+      const complaintsData =
+        (await complaintsRes.json()) as ResolvedComplaintWithRelations[];
+      const deptData = (await deptRes.json()) as Department[];
 
       setComplaints(complaintsData);
       setDepartments(deptData);
@@ -77,11 +74,11 @@ export default function ResolvedComplaintsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    void fetchData();
+  }, [fetchData]);
 
   // Filter complaints
   const filteredComplaints = useMemo(() => {
@@ -92,10 +89,10 @@ export default function ResolvedComplaintsPage() {
       const searchLower = searchTerm.toLowerCase();
       result = result.filter(
         (c) =>
-          c.title.toLowerCase().includes(searchLower) ||
-          c.details.toLowerCase().includes(searchLower) ||
-          c.location?.toLowerCase().includes(searchLower) ||
-          c.user.name?.toLowerCase().includes(searchLower),
+          c.title.toLowerCase().includes(searchLower) ??
+          c.details?.toLowerCase().includes(searchLower) ??
+          c.location?.toLowerCase().includes(searchLower) ??
+          c.user?.name?.toLowerCase().includes(searchLower),
       );
     }
 
@@ -166,7 +163,9 @@ export default function ResolvedComplaintsPage() {
     // Category breakdown
     const byCategory = filteredComplaints.reduce(
       (acc, c) => {
-        acc[c.category] = (acc[c.category] || 0) + 1;
+        const categoryKey = c.category ?? "OTHER";
+        acc[categoryKey] ??= 0;
+        acc[categoryKey] += 1;
         return acc;
       },
       {} as Record<string, number>,
@@ -175,7 +174,9 @@ export default function ResolvedComplaintsPage() {
     // Priority breakdown
     const byPriority = filteredComplaints.reduce(
       (acc, c) => {
-        acc[c.priority] = (acc[c.priority] || 0) + 1;
+        const priorityKey = c.priority ?? "MEDIUM";
+        acc[priorityKey] ??= 0;
+        acc[priorityKey] += 1;
         return acc;
       },
       {} as Record<string, number>,
@@ -209,11 +210,11 @@ export default function ResolvedComplaintsPage() {
       <div className="space-y-4 p-4">
         <Skeleton className="h-10 w-64" />
         <div className="grid gap-4 md:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
+          {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-24 w-full" />
           ))}
         </div>
-        {[...Array(3)].map((_, i) => (
+        {Array.from({ length: 3 }).map((_, i) => (
           <Skeleton key={i} className="h-40 w-full" />
         ))}
       </div>
@@ -313,7 +314,7 @@ export default function ResolvedComplaintsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats.byPriority.HIGH || 0}
+              {stats.byPriority.HIGH ?? 0}
             </div>
             <p className="text-muted-foreground text-xs">
               Urgent cases resolved
@@ -337,6 +338,7 @@ export default function ResolvedComplaintsPage() {
           </div>
         </CardContent>
       </Card>
+
       {/* Resolution Analytics Chart */}
       <ResolutionAnalytics complaints={filteredComplaints} />
 
@@ -443,11 +445,9 @@ export default function ResolvedComplaintsPage() {
                 {departmentFilter !== "all" && (
                   <Badge variant="secondary">
                     Dept:{" "}
-                    {
-                      departments.find(
-                        (d) => d.id.toString() === departmentFilter,
-                      )?.name
-                    }
+                    {departments.find(
+                      (d) => d.id.toString() === departmentFilter,
+                    )?.name ?? "Unknown"}
                   </Badge>
                 )}
                 {timeRangeFilter !== "all" && (

@@ -3,6 +3,11 @@ import { db } from "~/server/db";
 import { auth } from "~/server/auth";
 import { ActivityAction, NotificationType } from "@prisma/client";
 
+type CreateCommentBody = {
+  content: string;
+  isInternal?: boolean;
+};
+
 // POST - Add a comment to a complaint
 export async function POST(
   req: Request,
@@ -10,35 +15,33 @@ export async function POST(
 ) {
   try {
     const session = await auth();
-
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const data = await req.json();
-    const { content, isInternal } = data;
+    const data = (await req.json()) as CreateCommentBody;
+    const content = data.content?.trim();
+    const isInternal = data.isInternal ?? false;
 
-    if (!content?.trim()) {
+    if (!content || content.length < 1) {
       return NextResponse.json(
         { error: "Comment content is required" },
         { status: 400 },
       );
     }
 
-    // ADD: Validate content length
-    if (content.trim().length > 2000) {
+    if (content.length > 2000) {
       return NextResponse.json(
         { error: "Comment is too long (max 2000 characters)" },
         { status: 400 },
       );
     }
 
-    // Check if complaint exists
     const complaint = await db.complaint.findUnique({
       where: { id: params.id },
       include: {
         user: true,
-        assignedTo: true, // ADD: Include assigned staff for notification
+        assignedTo: true,
       },
     });
 
@@ -49,7 +52,6 @@ export async function POST(
       );
     }
 
-    // ADD: Check if complaint is deleted (soft delete)
     if (complaint.deletedAt) {
       return NextResponse.json(
         { error: "Cannot comment on deleted complaint" },
@@ -57,11 +59,10 @@ export async function POST(
       );
     }
 
-    // Only allow internal comments for admin/staff
-    const canPostInternal = ["ADMIN", "STAFF"].includes(session.user.role);
+    const canPostInternal =
+      session.user.role === "ADMIN" || session.user.role === "STAFF";
     const commentIsInternal = isInternal && canPostInternal;
 
-    // ADD: Staff can only comment on assigned complaints
     if (
       session.user.role === "STAFF" &&
       complaint.assignedToId !== session.user.id
@@ -72,12 +73,10 @@ export async function POST(
       );
     }
 
-    // Create comment, activity, and notification in a transaction
     const result = await db.$transaction(async (tx) => {
-      // Create the comment
       const comment = await tx.comment.create({
         data: {
-          content: content.trim(),
+          content,
           isInternal: commentIsInternal,
           complaintId: params.id,
           authorId: session.user.id,
@@ -93,13 +92,11 @@ export async function POST(
         },
       });
 
-      // Update complaint's updatedAt timestamp
       await tx.complaint.update({
         where: { id: params.id },
         data: { updatedAt: new Date() },
       });
 
-      // Create activity log
       await tx.complaintActivity.create({
         data: {
           complaintId: params.id,
@@ -111,22 +108,19 @@ export async function POST(
         },
       });
 
-      // IMPROVED: More comprehensive notification logic
       if (!commentIsInternal) {
         const notificationsToCreate = [];
 
-        // Notify complaint owner if not the commenter
         if (complaint.userId !== session.user.id) {
           notificationsToCreate.push({
             userId: complaint.userId,
             complaintId: params.id,
             title: "New Comment",
-            message: `${session.user.name || "Someone"} commented on your complaint`,
+            message: `${session.user.name ?? "Someone"} commented on your complaint`,
             type: NotificationType.COMMENT_ADDED,
           });
         }
 
-        // Notify assigned staff if exists, not the commenter, and different from owner
         if (
           complaint.assignedToId &&
           complaint.assignedToId !== session.user.id &&
@@ -136,12 +130,11 @@ export async function POST(
             userId: complaint.assignedToId,
             complaintId: params.id,
             title: "New Comment on Assigned Complaint",
-            message: `${session.user.name || "Someone"} commented on complaint: ${complaint.title}`,
+            message: `${session.user.name ?? "Someone"} commented on complaint: ${complaint.title}`,
             type: NotificationType.COMMENT_ADDED,
           });
         }
 
-        // Batch create notifications
         if (notificationsToCreate.length > 0) {
           await tx.notification.createMany({
             data: notificationsToCreate,
@@ -153,8 +146,8 @@ export async function POST(
     });
 
     return NextResponse.json(result, { status: 201 });
-  } catch (error) {
-    console.error("Error creating comment:", error);
+  } catch (err) {
+    console.error("Error creating comment:", err);
     return NextResponse.json(
       { error: "Failed to create comment" },
       { status: 500 },
@@ -170,39 +163,27 @@ export async function GET(
   try {
     const session = await auth();
 
-    // Check if complaint exists
     const complaint = await db.complaint.findUnique({
       where: { id: params.id },
     });
 
-    if (!complaint) {
+    if (!complaint || complaint.deletedAt) {
       return NextResponse.json(
         { error: "Complaint not found" },
         { status: 404 },
       );
     }
 
-    // ADD: Check if deleted
-    if (complaint.deletedAt) {
-      return NextResponse.json(
-        { error: "Complaint not found" },
-        { status: 404 },
-      );
-    }
-
-    // Determine if user can see internal comments
     const canSeeInternal =
       session?.user?.role === "ADMIN" || session?.user?.role === "STAFF";
 
-    // ADD: Optional filtering and pagination
     const { searchParams } = new URL(req.url);
-    const limit = parseInt(searchParams.get("limit") || "50");
-    const offset = parseInt(searchParams.get("offset") || "0");
+    const limit = Number(searchParams.get("limit") ?? 50);
+    const offset = Number(searchParams.get("offset") ?? 0);
 
     const comments = await db.comment.findMany({
       where: {
         complaintId: params.id,
-        // Hide internal comments from regular users
         ...(canSeeInternal ? {} : { isInternal: false }),
       },
       include: {
@@ -221,7 +202,6 @@ export async function GET(
       skip: offset,
     });
 
-    // ADD: Return total count for pagination
     const totalCount = await db.comment.count({
       where: {
         complaintId: params.id,
@@ -229,17 +209,19 @@ export async function GET(
       },
     });
 
+    const hasMore = offset + comments.length < totalCount;
+
     return NextResponse.json({
       comments,
       pagination: {
         total: totalCount,
         limit,
         offset,
-        hasMore: offset + comments.length < totalCount,
+        hasMore,
       },
     });
-  } catch (error) {
-    console.error("Error fetching comments:", error);
+  } catch (err) {
+    console.error("Error fetching comments:", err);
     return NextResponse.json(
       { error: "Failed to fetch comments" },
       { status: 500 },

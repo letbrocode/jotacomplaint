@@ -2,6 +2,14 @@ import { NextResponse } from "next/server";
 import { db } from "~/server/db";
 import { auth } from "~/server/auth";
 
+type CreateDepartmentBody = {
+  name: string;
+  description?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  isActive?: boolean;
+};
+
 // GET - List active departments (for dropdowns)
 export async function GET() {
   try {
@@ -36,15 +44,13 @@ export async function POST(req: Request) {
   try {
     const session = await auth();
 
-    // Only admins can create departments
     if (!session || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const data = await req.json();
+    const data = (await req.json()) as CreateDepartmentBody;
     const { name, description, email, phone, isActive } = data;
 
-    // Validate required fields
     if (!name || name.trim().length < 3) {
       return NextResponse.json(
         { error: "Department name is required (min 3 characters)" },
@@ -52,9 +58,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check if department with same name exists
+    const trimmedName = name.trim();
+
     const existing = await db.department.findUnique({
-      where: { name: name.trim() },
+      where: { name: trimmedName },
     });
 
     if (existing) {
@@ -66,10 +73,10 @@ export async function POST(req: Request) {
 
     const department = await db.department.create({
       data: {
-        name: name.trim(),
-        description: description?.trim() || null,
-        email: email?.trim() || null,
-        phone: phone?.trim() || null,
+        name: trimmedName,
+        description: description?.trim() ?? null,
+        email: email?.trim() ?? null,
+        phone: phone?.trim() ?? null,
         isActive: isActive ?? true,
       },
       include: {

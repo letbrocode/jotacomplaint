@@ -2,15 +2,23 @@ import { NextResponse } from "next/server";
 import { db } from "~/server/db";
 import { auth } from "~/server/auth";
 
+type UpdateDepartmentBody = {
+  name?: string;
+  description?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  isActive?: boolean;
+};
+
 // GET - Get single department
 export async function GET(
   req: Request,
   { params }: { params: { id: string } },
 ) {
   try {
-    const departmentId = parseInt(params.id);
+    const departmentId = Number(params.id);
 
-    if (isNaN(departmentId)) {
+    if (Number.isNaN(departmentId)) {
       return NextResponse.json(
         { error: "Invalid department ID" },
         { status: 400 },
@@ -54,24 +62,21 @@ export async function PATCH(
   try {
     const session = await auth();
 
-    // Only admins can update departments
     if (!session || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const departmentId = parseInt(params.id);
-
-    if (isNaN(departmentId)) {
+    const departmentId = Number(params.id);
+    if (Number.isNaN(departmentId)) {
       return NextResponse.json(
         { error: "Invalid department ID" },
         { status: 400 },
       );
     }
 
-    const data = await req.json();
+    const data = (await req.json()) as UpdateDepartmentBody;
     const { name, description, email, phone, isActive } = data;
 
-    // Validate name if provided
     if (name && name.trim().length < 3) {
       return NextResponse.json(
         { error: "Department name must be at least 3 characters" },
@@ -79,7 +84,6 @@ export async function PATCH(
       );
     }
 
-    // Check if department exists
     const existing = await db.department.findUnique({
       where: { id: departmentId },
     });
@@ -91,13 +95,12 @@ export async function PATCH(
       );
     }
 
-    // Check for name conflicts if name is being changed
     if (name && name.trim() !== existing.name) {
-      const nameConflict = await db.department.findUnique({
+      const conflict = await db.department.findUnique({
         where: { name: name.trim() },
       });
 
-      if (nameConflict) {
+      if (conflict) {
         return NextResponse.json(
           { error: "A department with this name already exists" },
           { status: 409 },
@@ -109,9 +112,9 @@ export async function PATCH(
       where: { id: departmentId },
       data: {
         ...(name && { name: name.trim() }),
-        description: description?.trim() || null,
-        email: email?.trim() || null,
-        phone: phone?.trim() || null,
+        description: description?.trim() ?? null,
+        email: email?.trim() ?? null,
+        phone: phone?.trim() ?? null,
         ...(isActive !== undefined && { isActive }),
       },
       include: {
@@ -142,21 +145,18 @@ export async function DELETE(
   try {
     const session = await auth();
 
-    // Only admins can delete departments
     if (!session || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const departmentId = parseInt(params.id);
-
-    if (isNaN(departmentId)) {
+    const departmentId = Number(params.id);
+    if (Number.isNaN(departmentId)) {
       return NextResponse.json(
         { error: "Invalid department ID" },
         { status: 400 },
       );
     }
 
-    // Check if department exists
     const existing = await db.department.findUnique({
       where: { id: departmentId },
       include: {
@@ -176,7 +176,6 @@ export async function DELETE(
       );
     }
 
-    // Prevent deletion if department has active complaints or staff
     if (existing._count.complaints > 0) {
       return NextResponse.json(
         {

@@ -116,7 +116,7 @@ export default async function StaffComplaintsPage() {
               <AlertCircle className="text-muted-foreground mb-4 h-12 w-12" />
               <h3 className="text-lg font-semibold">No Assigned Complaints</h3>
               <p className="text-muted-foreground text-sm">
-                You don't have any active assignments at the moment
+                You don&apos;t have any active assignments at the moment
               </p>
             </CardContent>
           </Card>

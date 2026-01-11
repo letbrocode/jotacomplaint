@@ -131,7 +131,7 @@ export default function AddLocationDialog({
         type: data.type,
         latitude: parseFloat(data.latitude),
         longitude: parseFloat(data.longitude),
-        description: data.description || null,
+        description: data.description ?? null,
       };
 
       const res = await fetch("/api/locations", {
@@ -143,15 +143,19 @@ export default function AddLocationDialog({
       if (!res.ok) {
         let errorMessage = "Failed to add location";
         try {
-          const error = await res.json();
-          errorMessage = error.error || error.message || errorMessage;
-        } catch (e) {
-          errorMessage = res.statusText || errorMessage;
+          const error = (await res.json()) as {
+            error?: string;
+            message?: string;
+          };
+          errorMessage =
+            error.error ?? error.message ?? res.statusText ?? errorMessage;
+        } catch {
+          errorMessage = res.statusText ?? errorMessage;
         }
         throw new Error(errorMessage);
       }
 
-      const location = await res.json();
+      const location = (await res.json()) as { name: string };
 
       toast.success("Location added successfully!", {
         description: `${location.name} has been added to the map`,
@@ -258,7 +262,7 @@ export default function AddLocationDialog({
                     />
                   </FormControl>
                   <FormDescription>
-                    {field.value?.length || 0}/500 characters
+                    {field.value?.length ?? 0}/500 characters
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -421,10 +425,10 @@ export default function AddLocationDialog({
                 </TabsContent>
               </Tabs>
 
-              {(form.formState.errors.latitude ||
+              {(form.formState.errors.latitude ??
                 form.formState.errors.longitude) && (
                 <p className="text-destructive text-sm font-medium">
-                  {form.formState.errors.latitude?.message ||
+                  {form.formState.errors.latitude?.message ??
                     form.formState.errors.longitude?.message}
                 </p>
               )}

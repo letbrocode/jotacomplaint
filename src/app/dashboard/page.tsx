@@ -12,7 +12,6 @@ import {
   Clock,
   Plus,
   RefreshCw,
-  TrendingUp,
   FileText,
   MessageSquare,
 } from "lucide-react";
@@ -30,7 +29,6 @@ import {
 } from "recharts";
 import type { ComplaintWithRelations } from "~/types/complaint";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 const COLORS = ["#f59e0b", "#3b82f6", "#10b981"];
 
@@ -38,7 +36,7 @@ function DashboardSkeleton() {
   return (
     <div className="space-y-8">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
+        {[...Array(4).keys()].map((_, i) => (
           <Skeleton key={i} className="h-32 w-full" />
         ))}
       </div>
@@ -53,7 +51,6 @@ function DashboardSkeleton() {
 
 export default function UserDashboard() {
   const { data: session } = useSession();
-  const router = useRouter();
   const [complaints, setComplaints] = useState<ComplaintWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +66,7 @@ export default function UserDashboard() {
         throw new Error("Failed to fetch complaints");
       }
 
-      const data: ComplaintWithRelations[] = await res.json();
+      const data = (await res.json()) as ComplaintWithRelations[];
       setComplaints(data);
       setLastUpdated(new Date());
     } catch (err) {
@@ -81,7 +78,7 @@ export default function UserDashboard() {
   };
 
   useEffect(() => {
-    fetchComplaints();
+    void fetchComplaints();
   }, []);
 
   // Memoized statistics
@@ -117,7 +114,7 @@ export default function UserDashboard() {
   const categoryData = useMemo(() => {
     const categoryMap = complaints.reduce(
       (acc, c) => {
-        acc[c.category] = (acc[c.category] || 0) + 1;
+        acc[c.category] = (acc[c.category] ?? 0) + 1;
         return acc;
       },
       {} as Record<string, number>,
@@ -157,7 +154,7 @@ export default function UserDashboard() {
             Welcome back{session?.user?.name ? `, ${session.user.name}` : ""}!
           </h2>
           <p className="text-muted-foreground">
-            Here's an overview of your complaints
+            Here&apos;s an overview of your complaints
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -291,7 +288,7 @@ export default function UserDashboard() {
             <CardHeader>
               <CardTitle>Complaints by Category</CardTitle>
               <p className="text-muted-foreground text-sm">
-                Types of issues you've reported
+                Types of issues you&apos;ve reported
               </p>
             </CardHeader>
             <CardContent className="h-[280px]">

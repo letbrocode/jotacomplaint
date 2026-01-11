@@ -1,7 +1,36 @@
 import { NextResponse } from "next/server";
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
-import { ActivityAction, NotificationType } from "@prisma/client";
+import {
+  ActivityAction,
+  NotificationType,
+  Status,
+  Priority,
+} from "@prisma/client";
+
+type UpdateComplaintBody = {
+  status?: Status;
+  assignedToId?: string | null;
+  departmentId?: number | null;
+  priority?: Priority;
+};
+
+type ActivityPayload = {
+  complaintId: string;
+  userId: string;
+  action: ActivityAction;
+  oldValue?: string | null;
+  newValue?: string | null;
+  comment?: string | null;
+};
+
+type NotificationPayload = {
+  userId: string;
+  complaintId: string;
+  title: string;
+  message: string;
+  type: NotificationType;
+};
 
 export async function PATCH(
   req: Request,
@@ -9,16 +38,14 @@ export async function PATCH(
 ) {
   const session = await auth();
 
-  // Only admins and staff can update
   if (!session || !["ADMIN", "STAFF"].includes(session.user.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
   try {
-    const data = await req.json();
+    const data = (await req.json()) as UpdateComplaintBody;
     const { status, assignedToId, departmentId, priority } = data;
 
-    // Validate the complaint exists
     const existing = await db.complaint.findUnique({
       where: { id: params.id },
       include: {
@@ -34,11 +61,10 @@ export async function PATCH(
       );
     }
 
-    // Track changes for activity log
-    const activities: any[] = [];
-    const notifications: any[] = [];
+    const activities: ActivityPayload[] = [];
+    const notifications: NotificationPayload[] = [];
 
-    // Status change
+    // STATUS CHANGE
     if (status && status !== existing.status) {
       activities.push({
         complaintId: params.id,
@@ -49,7 +75,6 @@ export async function PATCH(
         comment: `Status changed from ${existing.status} to ${status}`,
       });
 
-      // Notify user
       notifications.push({
         userId: existing.userId,
         complaintId: params.id,
@@ -59,7 +84,7 @@ export async function PATCH(
       });
     }
 
-    // Assignment change
+    // ASSIGNMENT CHANGE
     if (assignedToId !== undefined && assignedToId !== existing.assignedToId) {
       const action = existing.assignedToId
         ? ActivityAction.REASSIGNED
@@ -69,14 +94,13 @@ export async function PATCH(
         complaintId: params.id,
         userId: session.user.id,
         action,
-        oldValue: existing.assignedToId || undefined,
-        newValue: assignedToId || undefined,
+        oldValue: existing.assignedToId ?? null,
+        newValue: assignedToId ?? null,
         comment: assignedToId
           ? `Complaint ${existing.assignedToId ? "reassigned" : "assigned"}`
           : "Assignment removed",
       });
 
-      // Notify newly assigned staff
       if (assignedToId) {
         notifications.push({
           userId: assignedToId,
@@ -88,7 +112,7 @@ export async function PATCH(
       }
     }
 
-    // Priority change
+    // PRIORITY CHANGE
     if (priority && priority !== existing.priority) {
       activities.push({
         complaintId: params.id,
@@ -100,32 +124,31 @@ export async function PATCH(
       });
     }
 
-    // Department change
+    // DEPARTMENT CHANGE
     if (departmentId !== undefined && departmentId !== existing.departmentId) {
       activities.push({
         complaintId: params.id,
         userId: session.user.id,
         action: ActivityAction.DEPARTMENT_CHANGED,
-        oldValue: existing.departmentId?.toString() || undefined,
-        newValue: departmentId?.toString() || undefined,
+        oldValue: existing.departmentId?.toString() ?? null,
+        newValue: departmentId?.toString() ?? null,
         comment: "Department changed",
       });
     }
 
-    // Update complaint with transaction for data consistency
+    // UPDATE TRANSACTION
     const updated = await db.$transaction(async (tx) => {
-      // Update the complaint
       const complaint = await tx.complaint.update({
         where: { id: params.id },
         data: {
           ...(status && { status }),
           ...(priority && { priority }),
           assignedToId:
-            assignedToId === undefined
-              ? existing.assignedToId
-              : assignedToId || null,
+            assignedToId !== undefined
+              ? (assignedToId ?? null)
+              : existing.assignedToId,
           ...(departmentId !== undefined && {
-            departmentId: departmentId || null,
+            departmentId: departmentId ?? null,
           }),
           ...(status === "RESOLVED" &&
             !existing.resolvedAt && {
@@ -133,50 +156,29 @@ export async function PATCH(
             }),
         },
         include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
+          user: { select: { id: true, name: true, email: true } },
           department: true,
-          assignedTo: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
+          assignedTo: { select: { id: true, name: true, email: true } },
           _count: {
-            select: {
-              comments: true,
-              activities: true,
-            },
+            select: { comments: true, activities: true },
           },
         },
       });
 
-      // Create activity logs
       if (activities.length > 0) {
-        await tx.complaintActivity.createMany({
-          data: activities,
-        });
+        await tx.complaintActivity.createMany({ data: activities });
       }
 
-      // Create notifications
       if (notifications.length > 0) {
-        await tx.notification.createMany({
-          data: notifications,
-        });
+        await tx.notification.createMany({ data: notifications });
       }
 
       return complaint;
     });
 
     return NextResponse.json(updated);
-  } catch (error) {
-    console.error("❌ Error updating complaint:", error);
+  } catch (err) {
+    console.error("❌ Error updating complaint:", err);
     return NextResponse.json(
       { error: "Failed to update complaint" },
       { status: 500 },
@@ -184,9 +186,8 @@ export async function PATCH(
   }
 }
 
-// GET single complaint
 export async function GET(
-  req: Request,
+  _req: Request,
   { params }: { params: { id: string } },
 ) {
   try {
@@ -195,51 +196,24 @@ export async function GET(
     const complaint = await db.complaint.findUnique({
       where: { id: params.id },
       include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+        user: { select: { id: true, name: true, email: true } },
         department: true,
-        assignedTo: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+        assignedTo: { select: { id: true, name: true, email: true } },
         comments: {
           include: {
-            author: {
-              select: {
-                id: true,
-                name: true,
-                role: true,
-              },
-            },
+            author: { select: { id: true, name: true, role: true } },
           },
-          orderBy: {
-            createdAt: "desc",
-          },
+          orderBy: { createdAt: "desc" },
           where:
             session?.user?.role === "ADMIN" || session?.user?.role === "STAFF"
-              ? {} // Show all comments including internal
-              : { isInternal: false }, // Hide internal comments from users
+              ? {}
+              : { isInternal: false },
         },
         activities: {
           include: {
-            user: {
-              select: {
-                name: true,
-                role: true,
-              },
-            },
+            user: { select: { name: true, role: true } },
           },
-          orderBy: {
-            createdAt: "desc",
-          },
+          orderBy: { createdAt: "desc" },
         },
       },
     });
@@ -251,7 +225,6 @@ export async function GET(
       );
     }
 
-    // Check permissions
     if (
       session?.user?.role !== "ADMIN" &&
       session?.user?.role !== "STAFF" &&
@@ -261,8 +234,8 @@ export async function GET(
     }
 
     return NextResponse.json(complaint);
-  } catch (error) {
-    console.error("Error fetching complaint:", error);
+  } catch (err) {
+    console.error("Error fetching complaint:", err);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

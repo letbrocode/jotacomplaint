@@ -13,7 +13,7 @@ import {
 } from "~/components/ui/select";
 import { Badge } from "~/components/ui/badge";
 import { AlertTriangle, RefreshCw, Search, Filter } from "lucide-react";
-import type { Complaint, User, Department } from "@prisma/client";
+import type { Department, Role } from "@prisma/client";
 import ComplaintCard from "~/components/complaint-card";
 import type { ComplaintWithRelations } from "~/types/complaint";
 
@@ -25,9 +25,20 @@ type FilterState = {
   search: string;
 };
 
+type StaffMember = {
+  id: string;
+  name: string | null;
+  email: string | null;
+  createdAt: Date;
+  isActive: boolean;
+  password: string;
+  role: Role;
+  departments?: Department[];
+};
+
 export default function AdminComplaintsPage() {
   const [complaints, setComplaints] = useState<ComplaintWithRelations[]>([]);
-  const [staffList, setStaffList] = useState<any[]>([]);
+  const [staffList, setStaffList] = useState<StaffMember[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,9 +69,10 @@ export default function AdminComplaintsPage() {
       if (!staffRes.ok) throw new Error("Failed to fetch staff");
       if (!departmentsRes.ok) throw new Error("Failed to fetch departments");
 
-      const complaintsData = await complaintsRes.json();
-      const staffData = await staffRes.json();
-      const departmentsData = await departmentsRes.json();
+      const complaintsData =
+        (await complaintsRes.json()) as ComplaintWithRelations[];
+      const staffData = (await staffRes.json()) as StaffMember[];
+      const departmentsData = (await departmentsRes.json()) as Department[];
 
       setComplaints(complaintsData);
       setStaffList(staffData);
@@ -75,7 +87,7 @@ export default function AdminComplaintsPage() {
   };
 
   useEffect(() => {
-    fetchData();
+    void fetchData();
   }, []);
 
   // Memoized filtered and sorted complaints
@@ -101,9 +113,9 @@ export default function AdminComplaintsPage() {
       const searchLower = filters.search.toLowerCase();
       result = result.filter(
         (c) =>
-          c.title.toLowerCase().includes(searchLower) ||
-          c.details.toLowerCase().includes(searchLower) ||
-          c.location?.toLowerCase().includes(searchLower) ||
+          c.title.toLowerCase().includes(searchLower) ??
+          c.details.toLowerCase().includes(searchLower) ??
+          c.location?.toLowerCase().includes(searchLower) ??
           c.user.name?.toLowerCase().includes(searchLower),
       );
     }
@@ -181,11 +193,11 @@ export default function AdminComplaintsPage() {
       <div className="space-y-4 p-4">
         <Skeleton className="h-10 w-64" />
         <div className="flex gap-4">
-          {[...Array(4)].map((_, i) => (
+          {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-10 w-40" />
           ))}
         </div>
-        {[...Array(3)].map((_, i) => (
+        {Array.from({ length: 3 }).map((_, i) => (
           <Skeleton key={i} className="h-40 w-full" />
         ))}
       </div>

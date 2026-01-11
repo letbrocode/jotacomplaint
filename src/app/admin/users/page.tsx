@@ -18,7 +18,6 @@ import {
   Users,
   Search,
   CheckCircle,
-  XCircle,
   UserCheck,
   UserX,
 } from "lucide-react";
@@ -60,7 +59,7 @@ export default function AdminUsersPage() {
 
       if (!res.ok) throw new Error("Failed to fetch users");
 
-      const data = await res.json();
+      const data = (await res.json()) as User[];
       setUsers(data);
       setLastUpdated(new Date());
     } catch (err) {
@@ -72,7 +71,7 @@ export default function AdminUsersPage() {
   };
 
   useEffect(() => {
-    fetchUsers();
+    void fetchUsers();
   }, []);
 
   const handleToggleStatus = async (user: User) => {
@@ -80,7 +79,7 @@ export default function AdminUsersPage() {
     const action = newStatus ? "activate" : "deactivate";
 
     if (
-      !confirm(`Are you sure you want to ${action} ${user.name || user.email}?`)
+      !confirm(`Are you sure you want to ${action} ${user.name ?? user.email}?`)
     ) {
       return;
     }
@@ -93,11 +92,11 @@ export default function AdminUsersPage() {
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || `Failed to ${action} user`);
+        const error = (await res.json()) as { error?: string };
+        throw new Error(error.error ?? `Failed to ${action} user`);
       }
 
-      const updatedUser = await res.json();
+      const updatedUser = (await res.json()) as User;
       setUsers((prev) =>
         prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)),
       );
@@ -113,7 +112,7 @@ export default function AdminUsersPage() {
 
     if (
       !confirm(
-        `Are you sure you want to delete ${user.name || user.email}? This action cannot be undone.`,
+        `Are you sure you want to delete ${user.name ?? user.email}? This action cannot be undone.`,
       )
     ) {
       return;
@@ -125,8 +124,8 @@ export default function AdminUsersPage() {
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to delete user");
+        const error = (await res.json()) as { error?: string };
+        throw new Error(error.error ?? "Failed to delete user");
       }
 
       setUsers((prev) => prev.filter((u) => u.id !== id));
@@ -139,9 +138,9 @@ export default function AdminUsersPage() {
   // Filter users
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
-      searchTerm === "" ||
-      user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (searchTerm === "" ||
+        user.name?.toLowerCase().includes(searchTerm.toLowerCase())) ??
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ??
       user.phoneNumber?.includes(searchTerm);
 
     const matchesStatus =
@@ -162,12 +161,12 @@ export default function AdminUsersPage() {
       <div className="space-y-4">
         <Skeleton className="h-10 w-64" />
         <div className="flex gap-4">
-          {[...Array(3)].map((_, i) => (
+          {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-10 w-40" />
           ))}
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(6)].map((_, i) => (
+          {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-64 w-full" />
           ))}
         </div>

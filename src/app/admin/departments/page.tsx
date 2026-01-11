@@ -4,15 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
-import {
-  Plus,
-  RefreshCw,
-  AlertTriangle,
-  Users,
-  Building2,
-  Mail,
-  Phone,
-} from "lucide-react";
+import { Plus, RefreshCw, AlertTriangle, Users, Building2 } from "lucide-react";
 import { Badge } from "~/components/ui/badge";
 import type { Department } from "@prisma/client";
 import DepartmentDialog from "~/components/department-dialog";
@@ -42,7 +34,7 @@ export default function AdminDepartmentsPage() {
       const res = await fetch("/api/departments/all");
       if (!res.ok) throw new Error("Failed to fetch departments");
 
-      const data = await res.json();
+      const data = (await res.json()) as DepartmentWithStats[];
       setDepartments(data);
       setLastUpdated(new Date());
     } catch (err) {
@@ -56,7 +48,7 @@ export default function AdminDepartmentsPage() {
   };
 
   useEffect(() => {
-    fetchDepartments();
+    void fetchDepartments();
   }, []);
 
   const handleCreate = () => {
@@ -84,8 +76,8 @@ export default function AdminDepartmentsPage() {
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to delete department");
+        const error = (await res.json()) as { error?: string };
+        throw new Error(error.error ?? "Failed to delete department");
       }
 
       // Remove from state
@@ -118,7 +110,7 @@ export default function AdminDepartmentsPage() {
       <div className="space-y-4 p-4">
         <Skeleton className="h-10 w-64" />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(6)].map((_, i) => (
+          {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-64 w-full" />
           ))}
         </div>
@@ -145,10 +137,10 @@ export default function AdminDepartmentsPage() {
     active: departments.filter((d) => d.isActive).length,
     inactive: departments.filter((d) => !d.isActive).length,
     totalComplaints: departments.reduce(
-      (sum, d) => sum + (d._count?.complaints || 0),
+      (sum, d) => sum + (d._count?.complaints ?? 0),
       0,
     ),
-    totalStaff: departments.reduce((sum, d) => sum + (d._count?.staff || 0), 0),
+    totalStaff: departments.reduce((sum, d) => sum + (d._count?.staff ?? 0), 0),
   };
 
   return (

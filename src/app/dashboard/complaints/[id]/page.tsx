@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
@@ -20,7 +20,6 @@ import {
   MessageSquare,
   Activity,
   Send,
-  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
@@ -30,8 +29,8 @@ import Image from "next/image";
 type ComplaintWithDetails = Complaint & {
   user: PrismaUser;
   department: Department | null;
-  assignedTo?: PrismaUser | null;
-  comments?: Array<{
+  assignedTo: PrismaUser | null;
+  comments: Array<{
     id: string;
     content: string;
     isInternal: boolean;
@@ -42,7 +41,7 @@ type ComplaintWithDetails = Complaint & {
       role: string;
     };
   }>;
-  activities?: Array<{
+  activities: Array<{
     id: string;
     action: string;
     oldValue: string | null;
@@ -66,7 +65,7 @@ export default function UserComplaintDetailsPage() {
   const [updating, setUpdating] = useState(false);
   const [newComment, setNewComment] = useState("");
 
-  const fetchComplaintDetails = async () => {
+  const fetchComplaintDetails = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch(`/api/complaints/${complaintId}`);
@@ -78,28 +77,28 @@ export default function UserComplaintDetailsPage() {
           return;
         }
         if (res.status === 403) {
-          toast.error("You don't have permission to view this complaint");
+          toast.error("You do not have permission to view this complaint");
           router.push("/dashboard/complaints");
           return;
         }
         throw new Error("Failed to fetch complaint");
       }
 
-      const data = await res.json();
+      const data = (await res.json()) as ComplaintWithDetails;
       setComplaint(data);
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error(err);
       toast.error("Failed to load complaint details");
     } finally {
       setLoading(false);
     }
-  };
+  }, [complaintId, router]);
 
   useEffect(() => {
-    fetchComplaintDetails();
-  }, [complaintId]);
+    void fetchComplaintDetails();
+  }, [fetchComplaintDetails]);
 
-  const handleAddComment = async () => {
+  const handleAddComment = useCallback(async () => {
     if (!complaint || !newComment.trim()) return;
 
     setUpdating(true);
@@ -109,24 +108,22 @@ export default function UserComplaintDetailsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           content: newComment.trim(),
-          isInternal: false, // Users can't post internal comments
+          isInternal: false,
         }),
       });
 
       if (!res.ok) throw new Error("Failed to add comment");
 
-      // Refresh to get updated comments
       await fetchComplaintDetails();
-
       setNewComment("");
       toast.success("Comment added successfully");
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error(err);
       toast.error("Failed to add comment");
     } finally {
       setUpdating(false);
     }
-  };
+  }, [complaint, newComment, fetchComplaintDetails]);
 
   if (loading) {
     return (
@@ -173,10 +170,8 @@ export default function UserComplaintDetailsPage() {
     LOW: "border-blue-500/20 bg-blue-500/10 text-blue-600",
   }[complaint.priority];
 
-  // Filter out internal comments for regular users
-  const visibleComments =
-    complaint.comments?.filter((c) => !c.isInternal) || [];
-  const visibleActivities = complaint.activities || [];
+  const visibleComments = complaint.comments ?? [];
+  const visibleActivities = complaint.activities ?? [];
 
   return (
     <div className="space-y-6">
@@ -202,7 +197,7 @@ export default function UserComplaintDetailsPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
-        {/* Main Content */}
+        {/* Main */}
         <div className="space-y-6 md:col-span-2">
           {/* Complaint Info */}
           <Card>
@@ -213,71 +208,62 @@ export default function UserComplaintDetailsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <h3 className="mb-2 font-semibold">Description</h3>
-                <p className="text-muted-foreground">{complaint.details}</p>
-              </div>
-
+              <p className="text-muted-foreground">{complaint.details}</p>
               <Separator />
 
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm">
-                    <User className="text-muted-foreground h-4 w-4" />
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
                     <span className="font-medium">Category:</span>
                     <Badge variant="secondary">{complaint.category}</Badge>
                   </div>
 
                   {complaint.department && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Building2 className="text-muted-foreground h-4 w-4" />
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
                       <span className="font-medium">Department:</span>
                       <span>{complaint.department.name}</span>
                     </div>
                   )}
 
                   {complaint.location && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <MapPin className="text-muted-foreground h-4 w-4" />
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
                       <span className="font-medium">Location:</span>
                       <span>{complaint.location}</span>
                     </div>
                   )}
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Calendar className="text-muted-foreground h-4 w-4" />
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
                     <span className="font-medium">Submitted:</span>
-                    <span>{format(new Date(complaint.createdAt), "PPp")}</span>
+                    {format(new Date(complaint.createdAt), "PPp")}
                   </div>
 
-                  <div className="flex items-center gap-2 text-sm">
-                    <Clock className="text-muted-foreground h-4 w-4" />
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
                     <span className="font-medium">Last Updated:</span>
-                    <span>
-                      {formatDistanceToNow(new Date(complaint.updatedAt), {
-                        addSuffix: true,
-                      })}
-                    </span>
+                    {formatDistanceToNow(new Date(complaint.updatedAt), {
+                      addSuffix: true,
+                    })}
                   </div>
 
                   {complaint.resolvedAt && (
-                    <div className="flex items-center gap-2 text-sm">
+                    <div className="flex items-center gap-2">
                       <CheckCircle className="h-4 w-4 text-green-500" />
                       <span className="font-medium">Resolved:</span>
-                      <span>
-                        {format(new Date(complaint.resolvedAt), "PPp")}
-                      </span>
+                      {format(new Date(complaint.resolvedAt), "PPp")}
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Photo */}
               {complaint.photoUrl && (
-                <div>
-                  <h3 className="mb-2 font-semibold">Attached Photo</h3>
+                <div className="space-y-2">
+                  <h3 className="font-semibold">Attached Photo</h3>
                   <div className="relative h-64 w-full overflow-hidden rounded-lg">
                     <Image
                       src={complaint.photoUrl}
@@ -290,22 +276,19 @@ export default function UserComplaintDetailsPage() {
                 </div>
               )}
 
-              {/* Assigned Staff Info */}
               {complaint.assignedTo && (
                 <div className="rounded-lg bg-blue-50 p-4 dark:bg-blue-950/20">
                   <div className="flex items-center gap-2 text-sm">
                     <User className="h-4 w-4" />
                     <span className="font-medium">Assigned to:</span>
-                    <span>
-                      {complaint.assignedTo.name || complaint.assignedTo.email}
-                    </span>
+                    {complaint.assignedTo.name ?? complaint.assignedTo.email}
                   </div>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Comments Section */}
+          {/* Comments */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -314,7 +297,6 @@ export default function UserComplaintDetailsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Comment List */}
               <div className="max-h-96 space-y-4 overflow-y-auto">
                 {visibleComments.length > 0 ? (
                   visibleComments.map((comment) => (
@@ -322,7 +304,7 @@ export default function UserComplaintDetailsPage() {
                       <div className="mb-2 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="font-semibold">
-                            {comment.author.name || "Unknown"}
+                            {comment.author.name ?? "Unknown"}
                           </span>
                           <Badge variant="outline" className="text-xs">
                             {comment.author.role}
@@ -346,11 +328,10 @@ export default function UserComplaintDetailsPage() {
 
               <Separator />
 
-              {/* Add Comment */}
               {complaint.status !== "RESOLVED" && (
                 <div className="space-y-3">
                   <Textarea
-                    placeholder="Add a comment or update..."
+                    placeholder="Add a comment..."
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     rows={3}
@@ -379,9 +360,8 @@ export default function UserComplaintDetailsPage() {
           </Card>
         </div>
 
-        {/* Sidebar */}
+        {/* Sidebar Activities */}
         <div className="space-y-6">
-          {/* Activity Log */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -407,18 +387,21 @@ export default function UserComplaintDetailsPage() {
                           })}
                         </span>
                       </div>
+
                       {activity.comment && (
                         <p className="text-muted-foreground text-sm">
                           {activity.comment}
                         </p>
                       )}
+
                       {activity.oldValue && activity.newValue && (
                         <p className="text-muted-foreground text-xs">
                           {activity.oldValue} → {activity.newValue}
                         </p>
                       )}
+
                       <p className="text-muted-foreground text-xs">
-                        by {activity.user.name || "System"}
+                        by {activity.user.name ?? "System"}
                       </p>
                     </div>
                   ))

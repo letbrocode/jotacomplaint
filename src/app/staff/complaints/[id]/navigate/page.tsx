@@ -59,7 +59,7 @@ export default async function NavigatePage({
         destinationLat={complaint.latitude}
         destinationLng={complaint.longitude}
         destinationTitle={complaint.title}
-        destinationAddress={complaint.location || undefined}
+        destinationAddress={complaint.location ?? undefined}
       />
     </div>
   );

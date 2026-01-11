@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -36,7 +35,7 @@ function DataTableSkeleton() {
         <Skeleton className="h-10 w-32" />
         <Skeleton className="h-10 w-32" />
       </div>
-      {[...Array(5)].map((_, i) => (
+      {[...Array(5).keys()].map((_, i) => (
         <Skeleton key={i} className="h-32 w-full" />
       ))}
     </div>
@@ -44,7 +43,6 @@ function DataTableSkeleton() {
 }
 
 export default function ComplaintsPage() {
-  const { data: session } = useSession();
   const [complaints, setComplaints] = useState<ComplaintWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +63,7 @@ export default function ComplaintsPage() {
         throw new Error("Failed to fetch complaints");
       }
 
-      const data: ComplaintWithRelations[] = await res.json();
+      const data = (await res.json()) as ComplaintWithRelations[];
       setComplaints(data);
     } catch (err) {
       console.error(err);
@@ -76,7 +74,7 @@ export default function ComplaintsPage() {
   };
 
   useEffect(() => {
-    fetchComplaints();
+    void fetchComplaints();
   }, []);
 
   // Filter and sort complaints

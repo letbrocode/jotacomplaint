@@ -61,8 +61,8 @@ export default function AdminStaffPage() {
       if (!staffRes.ok) throw new Error("Failed to fetch staff");
       if (!deptRes.ok) throw new Error("Failed to fetch departments");
 
-      const staffData = await staffRes.json();
-      const deptData = await deptRes.json();
+      const staffData = (await staffRes.json()) as StaffWithRelations[];
+      const deptData = (await deptRes.json()) as Department[];
 
       setStaff(staffData);
       setDepartments(deptData);
@@ -76,7 +76,7 @@ export default function AdminStaffPage() {
   };
 
   useEffect(() => {
-    fetchData();
+    void fetchData();
   }, []);
 
   const handleCreate = () => {
@@ -104,8 +104,8 @@ export default function AdminStaffPage() {
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to delete staff member");
+        const error = (await res.json()) as { error?: string };
+        throw new Error(error.error ?? "Failed to delete staff member");
       }
 
       setStaff((prev) => prev.filter((s) => s.id !== id));
@@ -152,12 +152,12 @@ export default function AdminStaffPage() {
       <div className="space-y-4 p-4">
         <Skeleton className="h-10 w-64" />
         <div className="flex gap-4">
-          {[...Array(3)].map((_, i) => (
+          {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-10 w-40" />
           ))}
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(6)].map((_, i) => (
+          {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-64 w-full" />
           ))}
         </div>
@@ -185,7 +185,7 @@ export default function AdminStaffPage() {
     staffRole: staff.filter((s) => s.role === "STAFF").length,
     active: staff.filter((s) => s.isActive).length,
     totalAssignments: staff.reduce(
-      (sum, s) => sum + (s._count?.assignedComplaints || 0),
+      (sum, s) => sum + (s._count?.assignedComplaints ?? 0),
       0,
     ),
   };

@@ -1,21 +1,31 @@
 import { NextResponse } from "next/server";
 import { db } from "~/server/db";
 import { auth } from "~/server/auth";
+import { LocationType } from "@prisma/client";
 
-// GET all public locations
+type CreateLocationInput = {
+  name: string;
+  type: LocationType;
+  latitude: number;
+  longitude: number;
+  description?: string | null;
+};
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type");
 
+    const where = {
+      isActive: true,
+      ...(type && Object.values(LocationType).includes(type as LocationType)
+        ? { type: type as LocationType }
+        : {}),
+    };
+
     const locations = await db.publicLocation.findMany({
-      where: {
-        isActive: true,
-        ...(type && { type: type as any }),
-      },
-      orderBy: {
-        name: "asc",
-      },
+      where,
+      orderBy: { name: "asc" },
     });
 
     return NextResponse.json(locations);
@@ -28,7 +38,6 @@ export async function GET(req: Request) {
   }
 }
 
-// POST create public location (admin only)
 export async function POST(req: Request) {
   try {
     const session = await auth();
@@ -37,16 +46,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { name, type, latitude, longitude, description } = body;
+    const body = (await req.json()) as CreateLocationInput;
 
     const location = await db.publicLocation.create({
       data: {
-        name,
-        type,
-        latitude,
-        longitude,
-        description: description || null,
+        name: body.name,
+        type: body.type,
+        latitude: body.latitude,
+        longitude: body.longitude,
+        description: body.description ?? null,
       },
     });
 

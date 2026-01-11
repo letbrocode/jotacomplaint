@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
@@ -26,12 +26,10 @@ import {
   Clock,
   MessageSquare,
   Activity,
-  Image as ImageIcon,
   Send,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import type { Complaint, User as PrismaUser, Department } from "@prisma/client";
-import Image from "next/image";
 import ImageModal from "~/components/image-modal";
 import { toast } from "sonner";
 
@@ -76,7 +74,7 @@ export default function ComplaintDetailsPage() {
   const [newComment, setNewComment] = useState("");
   const [isInternalComment, setIsInternalComment] = useState(false);
 
-  const fetchComplaintDetails = async () => {
+  const fetchComplaintDetails = useCallback(async () => {
     try {
       setLoading(true);
       const [complaintRes, staffRes] = await Promise.all([
@@ -93,8 +91,8 @@ export default function ComplaintDetailsPage() {
         throw new Error("Failed to fetch complaint");
       }
 
-      const complaintData = await complaintRes.json();
-      const staffData = await staffRes.json();
+      const complaintData = (await complaintRes.json()) as ComplaintWithDetails;
+      const staffData = (await staffRes.json()) as PrismaUser[];
 
       setComplaint(complaintData);
       setStaffList(staffData);
@@ -104,11 +102,11 @@ export default function ComplaintDetailsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [complaintId, router]);
 
   useEffect(() => {
-    fetchComplaintDetails();
-  }, [complaintId]);
+    void fetchComplaintDetails();
+  }, [fetchComplaintDetails]);
 
   const handleStatusUpdate = async (newStatus: string) => {
     if (!complaint) return;
@@ -123,7 +121,7 @@ export default function ComplaintDetailsPage() {
 
       if (!res.ok) throw new Error("Failed to update status");
 
-      const updated = await res.json();
+      const updated = (await res.json()) as ComplaintWithDetails;
       setComplaint(updated);
       toast.success("Status updated successfully");
     } catch (error) {
@@ -142,12 +140,14 @@ export default function ComplaintDetailsPage() {
       const res = await fetch(`/api/complaints/${complaint.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ assignedToId: staffId || null }),
+        body: JSON.stringify({
+          assignedToId: staffId === "unassigned" ? null : staffId,
+        }),
       });
 
       if (!res.ok) throw new Error("Failed to update assignment");
 
-      const updated = await res.json();
+      const updated = (await res.json()) as ComplaintWithDetails;
       setComplaint(updated);
       toast.success("Assignment updated successfully");
     } catch (error) {
@@ -173,8 +173,6 @@ export default function ComplaintDetailsPage() {
       });
 
       if (!res.ok) throw new Error("Failed to add comment");
-
-      const newCommentData = await res.json();
 
       // Refresh to get updated comments
       await fetchComplaintDetails();
@@ -222,17 +220,19 @@ export default function ComplaintDetailsPage() {
     );
   }
 
-  const statusColor = {
-    PENDING: "border-yellow-500/20 bg-yellow-500/10 text-yellow-600",
-    IN_PROGRESS: "border-blue-500/20 bg-blue-500/10 text-blue-600",
-    RESOLVED: "border-green-500/20 bg-green-500/10 text-green-600",
-  }[complaint.status];
+  const statusColor =
+    {
+      PENDING: "border-yellow-500/20 bg-yellow-500/10 text-yellow-600",
+      IN_PROGRESS: "border-blue-500/20 bg-blue-500/10 text-blue-600",
+      RESOLVED: "border-green-500/20 bg-green-500/10 text-green-600",
+    }[complaint.status] ?? "";
 
-  const priorityColor = {
-    HIGH: "border-red-500/20 bg-red-500/10 text-red-600",
-    MEDIUM: "border-orange-500/20 bg-orange-500/10 text-orange-600",
-    LOW: "border-blue-500/20 bg-blue-500/10 text-blue-600",
-  }[complaint.priority];
+  const priorityColor =
+    {
+      HIGH: "border-red-500/20 bg-red-500/10 text-red-600",
+      MEDIUM: "border-orange-500/20 bg-orange-500/10 text-orange-600",
+      LOW: "border-blue-500/20 bg-blue-500/10 text-blue-600",
+    }[complaint.priority] ?? "";
 
   return (
     <div className="space-y-6 p-4">
@@ -249,7 +249,7 @@ export default function ComplaintDetailsPage() {
         </div>
         <div className="flex gap-2">
           <Badge variant="outline" className={statusColor}>
-            {complaint.status.replace("_", " ")}
+            {complaint.status.replace(/_/g, " ")}
           </Badge>
           <Badge variant="outline" className={priorityColor}>
             {complaint.priority}
@@ -281,7 +281,7 @@ export default function ComplaintDetailsPage() {
                   <div className="flex items-center gap-2 text-sm">
                     <User className="text-muted-foreground h-4 w-4" />
                     <span className="font-medium">Submitted by:</span>
-                    <span>{complaint.user.name || complaint.user.email}</span>
+                    <span>{complaint.user.name ?? complaint.user.email}</span>
                   </div>
 
                   {complaint.department && (
@@ -345,7 +345,7 @@ export default function ComplaintDetailsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MessageSquare className="h-5 w-5" />
-                Comments ({complaint.comments?.length || 0})
+                Comments ({complaint.comments?.length ?? 0})
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -364,7 +364,7 @@ export default function ComplaintDetailsPage() {
                       <div className="mb-2 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="font-semibold">
-                            {comment.author.name || "Unknown"}
+                            {comment.author.name ?? "Unknown"}
                           </span>
                           <Badge variant="outline" className="text-xs">
                             {comment.author.role}
@@ -462,7 +462,7 @@ export default function ComplaintDetailsPage() {
                   Assign to Staff
                 </label>
                 <Select
-                  value={complaint.assignedToId || "unassigned"}
+                  value={complaint.assignedToId ?? "unassigned"}
                   onValueChange={handleAssignmentUpdate}
                   disabled={updating}
                 >
@@ -473,7 +473,7 @@ export default function ComplaintDetailsPage() {
                     <SelectItem value="unassigned">Unassigned</SelectItem>
                     {staffList.map((staff) => (
                       <SelectItem key={staff.id} value={staff.id}>
-                        {staff.name || staff.email}
+                        {staff.name ?? staff.email}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -484,7 +484,7 @@ export default function ComplaintDetailsPage() {
                 <div className="bg-muted rounded-lg p-3 text-sm">
                   <p className="font-medium">Currently assigned to:</p>
                   <p className="text-muted-foreground">
-                    {complaint.assignedTo.name || complaint.assignedTo.email}
+                    {complaint.assignedTo.name ?? complaint.assignedTo.email}
                   </p>
                 </div>
               )}
@@ -528,7 +528,7 @@ export default function ComplaintDetailsPage() {
                         </p>
                       )}
                       <p className="text-muted-foreground text-xs">
-                        by {activity.user.name || "Unknown"}
+                        by {activity.user.name ?? "Unknown"}
                       </p>
                     </div>
                   ))

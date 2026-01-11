@@ -321,7 +321,7 @@ export default function NavigationView({
               Navigation Tips
             </p>
             <ul className="space-y-1 text-amber-800 dark:text-amber-200">
-              <li>• Click "Get My Location" to calculate distance</li>
+              <li>• Click &quot;Get My Location&quot; to calculate distance</li>
               <li>
                 • Choose your preferred navigation app for turn-by-turn
                 directions

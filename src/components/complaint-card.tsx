@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { toast } from "sonner";
-import type { User as PrismaUser } from "@prisma/client";
+import type { $Enums, User as PrismaUser } from "@prisma/client";
 import type { ComplaintWithRelations } from "~/types/complaint"; // Import from shared file
 
 interface ComplaintCardProps {
@@ -39,9 +39,13 @@ export default function ComplaintCard({
   const [assignedTo, setAssignedTo] = useState(complaint.assignedTo?.id ?? "");
   const [updating, setUpdating] = useState(false);
 
+  type ComplaintUpdatePayload = {
+    status?: $Enums.Status;
+    assignedToId?: string | null;
+  };
   // Generic update handler with optimistic updates
   async function handleUpdate(
-    updateData: Record<string, any>,
+    updateData: ComplaintUpdatePayload,
     successMessage: string,
     optimisticUpdate?: Partial<ComplaintWithRelations>,
   ) {
@@ -60,16 +64,16 @@ export default function ComplaintCard({
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Update failed");
+        const error = (await res.json()) as { error?: string };
+        throw new Error(error.error ?? "Update failed");
       }
 
-      const updated = await res.json();
+      const updated = (await res.json()) as ComplaintWithRelations;
 
       // Update local state
       if (updateData.status !== undefined) setStatus(updated.status);
       if (updateData.assignedToId !== undefined)
-        setAssignedTo(updated.assignedToId || "");
+        setAssignedTo(updated.assignedToId ?? "");
 
       // Call parent callback with full updated data
       if (onUpdate) {
@@ -97,11 +101,11 @@ export default function ComplaintCard({
   }
 
   // Status Change Handler
-  async function handleStatusChange(newStatus: string) {
+  async function handleStatusChange(newStatus: $Enums.Status) {
     await handleUpdate(
       { status: newStatus },
       `Status updated to ${newStatus}`,
-      { status: newStatus as any },
+      { status: newStatus },
     );
   }
 
@@ -118,8 +122,8 @@ export default function ComplaintCard({
     const selectedStaff = staffList.find((s) => s.id === staffId);
     await handleUpdate(
       { assignedToId: staffId },
-      `Assigned to ${selectedStaff?.name || "staff"}`,
-      { assignedTo: selectedStaff || null, assignedToId: staffId },
+      `Assigned to ${selectedStaff?.name ?? "staff"}`,
+      { assignedTo: selectedStaff ?? null, assignedToId: staffId },
     );
   }
 
@@ -215,7 +219,7 @@ export default function ComplaintCard({
             {complaint.assignedTo && (
               <div className="bg-muted/50 rounded-md p-2 text-xs">
                 <span className="font-semibold">Assigned to:</span>{" "}
-                {complaint.assignedTo.name || complaint.assignedTo.email}
+                {complaint.assignedTo.name ?? complaint.assignedTo.email}
               </div>
             )}
 

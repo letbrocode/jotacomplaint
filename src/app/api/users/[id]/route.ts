@@ -13,8 +13,15 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { isActive } = body;
+    const body = (await request.json()) as { isActive: boolean | undefined };
+    const isActive = body.isActive;
+
+    if (typeof isActive !== "boolean") {
+      return NextResponse.json(
+        { error: "Invalid isActive value" },
+        { status: 400 },
+      );
+    }
 
     const user = await db.user.update({
       where: { id: params.id },
@@ -25,11 +32,7 @@ export async function PATCH(
         id: true,
         name: true,
         email: true,
-        // image: true,
-        // phoneNumber: true,
-        // address: true,
         isActive: true,
-        // emailVerified: true,
         createdAt: true,
         _count: {
           select: {

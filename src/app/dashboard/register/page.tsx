@@ -32,6 +32,7 @@ import Link from "next/link";
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import type { ComplaintWithRelations } from "~/types/complaint";
 
 const LocationPickerMap = dynamic(
   () => import("~/components/maps/LocationPickerMap"),
@@ -116,7 +117,7 @@ export default function RegisterComplaint() {
         details: data.details,
         category: data.category,
         priority: data.priority,
-        location: data.location || null,
+        location: data.location ?? null,
         latitude: data.latitude ? parseFloat(data.latitude) : null,
         longitude: data.longitude ? parseFloat(data.longitude) : null,
         photoUrl: photoUrl || null,
@@ -132,16 +133,19 @@ export default function RegisterComplaint() {
         // Try to parse error message, fallback to status text
         let errorMessage = "Failed to register complaint";
         try {
-          const error = await res.json();
-          errorMessage = error.error || error.message || errorMessage;
-        } catch (e) {
+          const error = (await res.json()) as {
+            error?: string;
+            message?: string;
+          };
+          errorMessage = error.error ?? error.message ?? errorMessage;
+        } catch {
           // If JSON parsing fails, use status text
-          errorMessage = res.statusText || errorMessage;
+          errorMessage = res.statusText ?? errorMessage;
         }
         throw new Error(errorMessage);
       }
 
-      const complaint = await res.json();
+      const complaint = (await res.json()) as ComplaintWithRelations;
 
       toast.success("Complaint submitted successfully!", {
         description: "We'll keep you updated on the progress",

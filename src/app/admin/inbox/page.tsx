@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent } from "~/components/ui/card";
+import { Card } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Badge } from "~/components/ui/badge";
@@ -43,7 +43,7 @@ export default function InboxPage() {
       const res = await fetch("/api/notifications");
       if (!res.ok) throw new Error("Failed to fetch notifications");
 
-      const data = await res.json();
+      const data = (await res.json()) as NotificationWithComplaint[];
       setNotifications(data);
       setLastUpdated(new Date());
     } catch (err) {
@@ -57,7 +57,7 @@ export default function InboxPage() {
   };
 
   useEffect(() => {
-    fetchNotifications();
+    void fetchNotifications();
   }, []);
 
   const handleMarkAsRead = async (id: string) => {
@@ -129,7 +129,7 @@ export default function InboxPage() {
       <div className="space-y-4 p-4">
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-12 w-full" />
-        {[...Array(5)].map((_, i) => (
+        {Array.from({ length: 5 }).map((_, i) => (
           <Skeleton key={i} className="h-24 w-full" />
         ))}
       </div>
@@ -250,7 +250,7 @@ export default function InboxPage() {
               <Inbox className="text-muted-foreground mx-auto mb-4 h-16 w-16 opacity-20" />
               <h3 className="mb-2 text-lg font-semibold">No notifications</h3>
               <p className="text-muted-foreground text-sm">
-                You're all caught up! Check back later for updates.
+                You&apos;re all caught up! Check back later for updates.
               </p>
             </Card>
           ) : (

@@ -2,16 +2,24 @@ import { NextResponse } from "next/server";
 import { db } from "~/server/db";
 import { auth } from "~/server/auth";
 import bcrypt from "bcryptjs";
+import type { Role } from "@prisma/client";
+
+type StaffPatchDTO = {
+  name?: string;
+  password?: string;
+  role?: Role;
+  isActive?: boolean;
+  departmentIds?: number[];
+};
 
 // GET - Get single staff member
 export async function GET(
-  req: Request,
+  _req: Request,
   { params }: { params: { id: string } },
 ) {
   try {
     const session = await auth();
 
-    // Only admins can view staff details
     if (!session || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
@@ -21,9 +29,7 @@ export async function GET(
       include: {
         departments: true,
         _count: {
-          select: {
-            assignedComplaints: true,
-          },
+          select: { assignedComplaints: true },
         },
       },
     });
@@ -35,9 +41,7 @@ export async function GET(
       );
     }
 
-    // Remove password from response
-    const { password: _, ...userWithoutPassword } = user;
-
+    const { password: _removed, ...userWithoutPassword } = user;
     return NextResponse.json(userWithoutPassword);
   } catch (error) {
     console.error("Error fetching staff member:", error);
@@ -56,15 +60,13 @@ export async function PATCH(
   try {
     const session = await auth();
 
-    // Only admins can update staff
     if (!session || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const data = await req.json();
-    const { name, password, role, isActive, departmentIds } = data;
+    const body = (await req.json()) as StaffPatchDTO;
+    const { name, password, role, isActive, departmentIds } = body;
 
-    // Check if staff member exists
     const existing = await db.user.findUnique({
       where: { id: params.id },
     });
@@ -76,61 +78,51 @@ export async function PATCH(
       );
     }
 
-    // Validate name if provided
-    if (name && name.trim().length < 2) {
+    // Validations
+    if (typeof name === "string" && name.trim().length < 2) {
       return NextResponse.json(
         { error: "Name must be at least 2 characters" },
         { status: 400 },
       );
     }
 
-    // Validate password if provided
-    if (password && password.length < 8) {
+    if (typeof password === "string" && password.length < 8) {
       return NextResponse.json(
         { error: "Password must be at least 8 characters" },
         { status: 400 },
       );
     }
 
-    // Hash password if provided
     const hashedPassword = password
       ? await bcrypt.hash(password, 10)
       : undefined;
 
-    // Update user - handle departments separately due to many-to-many relationship
+    // Update in transaction
     const updated = await db.$transaction(async (tx) => {
-      // First, disconnect all current departments
-      if (departmentIds !== undefined) {
+      if (Array.isArray(departmentIds)) {
         await tx.user.update({
           where: { id: params.id },
-          data: {
-            departments: {
-              set: [], // Disconnect all
-            },
-          },
+          data: { departments: { set: [] } },
         });
       }
 
-      // Then update user with new data
       const user = await tx.user.update({
         where: { id: params.id },
         data: {
-          ...(name && { name: name.trim() }),
+          ...(typeof name === "string" && { name: name.trim() }),
           ...(hashedPassword && { password: hashedPassword }),
-          ...(role && { role }),
-          ...(isActive !== undefined && { isActive }),
-          ...(departmentIds !== undefined && {
+          ...(typeof role === "string" && { role }),
+          ...(typeof isActive === "boolean" && { isActive }),
+          ...(Array.isArray(departmentIds) && {
             departments: {
-              connect: departmentIds.map((id: number) => ({ id })),
+              connect: departmentIds.map((id) => ({ id })),
             },
           }),
         },
         include: {
           departments: true,
           _count: {
-            select: {
-              assignedComplaints: true,
-            },
+            select: { assignedComplaints: true },
           },
         },
       });
@@ -138,9 +130,7 @@ export async function PATCH(
       return user;
     });
 
-    // Remove password from response
-    const { password: _, ...userWithoutPassword } = updated;
-
+    const { password: _removed, ...userWithoutPassword } = updated;
     return NextResponse.json(userWithoutPassword);
   } catch (error) {
     console.error("Error updating staff member:", error);
@@ -153,25 +143,23 @@ export async function PATCH(
 
 // DELETE - Delete staff member
 export async function DELETE(
-  req: Request,
+  _req: Request,
   { params }: { params: { id: string } },
 ) {
   try {
     const session = await auth();
 
-    // Only admins can delete staff
     if (!session || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    // Check if staff member exists
     const existing = await db.user.findUnique({
       where: { id: params.id },
       include: {
         _count: {
           select: {
             assignedComplaints: true,
-            complaints: true, // User-submitted complaints
+            complaints: true,
           },
         },
       },
@@ -184,7 +172,6 @@ export async function DELETE(
       );
     }
 
-    // Prevent deleting yourself
     if (existing.id === session.user.id) {
       return NextResponse.json(
         { error: "You cannot delete your own account" },
@@ -192,7 +179,6 @@ export async function DELETE(
       );
     }
 
-    // Prevent deletion if staff has assigned complaints
     if (existing._count.assignedComplaints > 0) {
       return NextResponse.json(
         {
@@ -202,8 +188,6 @@ export async function DELETE(
       );
     }
 
-    // Note: User-submitted complaints will be cascade deleted due to schema
-    // You may want to reassign these instead
     if (existing._count.complaints > 0) {
       return NextResponse.json(
         {
