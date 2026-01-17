@@ -34,7 +34,7 @@ type NotificationPayload = {
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
 
@@ -43,11 +43,13 @@ export async function PATCH(
   }
 
   try {
+    const { id } = await params;
+
     const data = (await req.json()) as UpdateComplaintBody;
     const { status, assignedToId, departmentId, priority } = data;
 
     const existing = await db.complaint.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         user: true,
         assignedTo: true,
@@ -67,7 +69,7 @@ export async function PATCH(
     // STATUS CHANGE
     if (status && status !== existing.status) {
       activities.push({
-        complaintId: params.id,
+        complaintId: id,
         userId: session.user.id,
         action: ActivityAction.STATUS_CHANGED,
         oldValue: existing.status,
@@ -77,7 +79,7 @@ export async function PATCH(
 
       notifications.push({
         userId: existing.userId,
-        complaintId: params.id,
+        complaintId: id,
         title: "Status Updated",
         message: `Your complaint status changed to ${status}`,
         type: NotificationType.STATUS_UPDATED,
@@ -91,7 +93,7 @@ export async function PATCH(
         : ActivityAction.ASSIGNED;
 
       activities.push({
-        complaintId: params.id,
+        complaintId: id,
         userId: session.user.id,
         action,
         oldValue: existing.assignedToId ?? null,
@@ -104,7 +106,7 @@ export async function PATCH(
       if (assignedToId) {
         notifications.push({
           userId: assignedToId,
-          complaintId: params.id,
+          complaintId: id,
           title: "New Assignment",
           message: `You have been assigned a complaint: ${existing.title}`,
           type: NotificationType.COMPLAINT_ASSIGNED,
@@ -115,7 +117,7 @@ export async function PATCH(
     // PRIORITY CHANGE
     if (priority && priority !== existing.priority) {
       activities.push({
-        complaintId: params.id,
+        complaintId: id,
         userId: session.user.id,
         action: ActivityAction.PRIORITY_CHANGED,
         oldValue: existing.priority,
@@ -127,7 +129,7 @@ export async function PATCH(
     // DEPARTMENT CHANGE
     if (departmentId !== undefined && departmentId !== existing.departmentId) {
       activities.push({
-        complaintId: params.id,
+        complaintId: id,
         userId: session.user.id,
         action: ActivityAction.DEPARTMENT_CHANGED,
         oldValue: existing.departmentId?.toString() ?? null,
@@ -139,7 +141,7 @@ export async function PATCH(
     // UPDATE TRANSACTION
     const updated = await db.$transaction(async (tx) => {
       const complaint = await tx.complaint.update({
-        where: { id: params.id },
+        where: { id },
         data: {
           ...(status && { status }),
           ...(priority && { priority }),
@@ -188,13 +190,15 @@ export async function PATCH(
 
 export async function GET(
   _req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
 
+    const { id } = await params;
+
     const complaint = await db.complaint.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         user: { select: { id: true, name: true, email: true } },
         department: true,

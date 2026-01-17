@@ -5,7 +5,7 @@ import { auth } from "~/server/auth";
 // PATCH - Mark notification as read
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -14,9 +14,11 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     // Check if notification exists and belongs to user
     const notification = await db.notification.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!notification) {
@@ -31,7 +33,7 @@ export async function PATCH(
     }
 
     const updated = await db.notification.update({
-      where: { id: params.id },
+      where: { id: id },
       data: { isRead: true },
     });
 

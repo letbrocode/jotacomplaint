@@ -9,7 +9,7 @@ type UpdateCommentBody = {
 // PATCH - Update a comment
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string; commentId: string } },
+  { params }: { params: Promise<{ id: string; commentId: string }> },
 ) {
   try {
     const session = await auth();
@@ -17,6 +17,8 @@ export async function PATCH(
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { id, commentId } = await params;
 
     const body = (await req.json()) as UpdateCommentBody;
     const content = body.content?.trim();
@@ -29,7 +31,7 @@ export async function PATCH(
     }
 
     const comment = await db.comment.findUnique({
-      where: { id: params.commentId },
+      where: { id: commentId },
     });
 
     if (!comment) {
@@ -44,7 +46,7 @@ export async function PATCH(
     }
 
     const updatedComment = await db.comment.update({
-      where: { id: params.commentId },
+      where: { id: commentId },
       data: { content },
       include: {
         author: {
@@ -70,7 +72,7 @@ export async function PATCH(
 // DELETE - Delete a comment
 export async function DELETE(
   _req: Request,
-  { params }: { params: { id: string; commentId: string } },
+  { params }: { params: Promise<{ id: string; commentId: string }> },
 ) {
   try {
     const session = await auth();
@@ -79,8 +81,10 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { commentId } = await params;
+
     const comment = await db.comment.findUnique({
-      where: { id: params.commentId },
+      where: { id: commentId },
     });
 
     if (!comment) {
@@ -95,7 +99,7 @@ export async function DELETE(
     }
 
     await db.comment.delete({
-      where: { id: params.commentId },
+      where: { id: commentId },
     });
 
     return NextResponse.json({ message: "Comment deleted" });

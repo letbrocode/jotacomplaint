@@ -19,7 +19,7 @@ import AddCommentForm from "./AddCommentForm";
 export default async function StaffComplaintDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const session = await auth();
 
@@ -27,8 +27,10 @@ export default async function StaffComplaintDetailPage({
     redirect("/signin");
   }
 
+  const { id } = await params;
+
   const complaint = await db.complaint.findUnique({
-    where: { id: params.id },
+    where: { id: id },
     include: {
       user: {
         select: {

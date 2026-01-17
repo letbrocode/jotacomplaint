@@ -4,7 +4,7 @@ import { db } from "~/server/db";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -12,6 +12,8 @@ export async function PATCH(
     if (!session?.user || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { id } = await params;
 
     const body = (await request.json()) as { isActive: boolean | undefined };
     const isActive = body.isActive;
@@ -24,7 +26,7 @@ export async function PATCH(
     }
 
     const user = await db.user.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         isActive,
       },
@@ -54,7 +56,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -63,9 +65,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     // Check if user has active complaints
     const userWithComplaints = await db.user.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         _count: {
           select: {
@@ -89,7 +93,7 @@ export async function DELETE(
     }
 
     await db.user.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({ success: true });

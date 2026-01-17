@@ -13,10 +13,11 @@ type UpdateDepartmentBody = {
 // GET - Get single department
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const departmentId = Number(params.id);
+    const { id } = await params;
+    const departmentId = Number(id);
 
     if (Number.isNaN(departmentId)) {
       return NextResponse.json(
@@ -57,7 +58,7 @@ export async function GET(
 // PATCH - Update department
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -66,7 +67,9 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const departmentId = Number(params.id);
+    const { id } = await params;
+    const departmentId = Number(id);
+
     if (Number.isNaN(departmentId)) {
       return NextResponse.json(
         { error: "Invalid department ID" },
@@ -140,7 +143,7 @@ export async function PATCH(
 // DELETE - Delete department
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -149,7 +152,9 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const departmentId = Number(params.id);
+    const { id } = await params;
+    const departmentId = Number(id);
+
     if (Number.isNaN(departmentId)) {
       return NextResponse.json(
         { error: "Invalid department ID" },

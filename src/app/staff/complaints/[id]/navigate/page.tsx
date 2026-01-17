@@ -9,16 +9,17 @@ import NavigationView from "./NavigationView";
 export default async function NavigatePage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const session = await auth();
+  const { id } = await params;
 
   if (!session?.user || session.user.role !== "STAFF") {
     redirect("/signin");
   }
 
   const complaint = await db.complaint.findUnique({
-    where: { id: params.id },
+    where: { id },
     select: {
       id: true,
       title: true,

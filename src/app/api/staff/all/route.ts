@@ -42,7 +42,9 @@ export async function GET() {
     });
 
     // Remove passwords from response
-    const staffWithoutPasswords = staff.map(({ password, ...user }) => user);
+    const staffWithoutPasswords = staff.map(
+      ({ password: _password, ...user }) => user,
+    );
 
     return NextResponse.json(staffWithoutPasswords);
   } catch (error) {

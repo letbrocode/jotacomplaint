@@ -9,7 +9,7 @@ type UpdateStatusBody = {
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -21,12 +21,14 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     const body = (await req.json()) as UpdateStatusBody;
     const { status } = body;
 
     // Update status
     const complaint = await db.complaint.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         status,
         resolvedAt: status === "RESOLVED" ? new Date() : null,
@@ -36,7 +38,7 @@ export async function PATCH(
     // Log activity
     await db.complaintActivity.create({
       data: {
-        complaintId: params.id,
+        complaintId: id,
         userId: session.user.id,
         action: ActivityAction.STATUS_CHANGED,
         newValue: status,

@@ -15,7 +15,7 @@ type StaffPatchDTO = {
 // GET - Get single staff member
 export async function GET(
   _req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -24,8 +24,10 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
+    const { id } = await params;
+
     const user = await db.user.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         departments: true,
         _count: {
@@ -55,7 +57,7 @@ export async function GET(
 // PATCH - Update staff member
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -64,11 +66,12 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
+    const { id } = await params;
     const body = (await req.json()) as StaffPatchDTO;
     const { name, password, role, isActive, departmentIds } = body;
 
     const existing = await db.user.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!existing) {
@@ -101,13 +104,13 @@ export async function PATCH(
     const updated = await db.$transaction(async (tx) => {
       if (Array.isArray(departmentIds)) {
         await tx.user.update({
-          where: { id: params.id },
+          where: { id: id },
           data: { departments: { set: [] } },
         });
       }
 
       const user = await tx.user.update({
-        where: { id: params.id },
+        where: { id: id },
         data: {
           ...(typeof name === "string" && { name: name.trim() }),
           ...(hashedPassword && { password: hashedPassword }),
@@ -144,7 +147,7 @@ export async function PATCH(
 // DELETE - Delete staff member
 export async function DELETE(
   _req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -153,8 +156,10 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
+    const { id } = await params;
+
     const existing = await db.user.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         _count: {
           select: {
@@ -198,7 +203,7 @@ export async function DELETE(
     }
 
     await db.user.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({

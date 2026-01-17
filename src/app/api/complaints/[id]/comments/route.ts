@@ -11,13 +11,15 @@ type CreateCommentBody = {
 // POST - Add a comment to a complaint
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { id } = await params;
 
     const data = (await req.json()) as CreateCommentBody;
     const content = data.content?.trim();
@@ -38,7 +40,7 @@ export async function POST(
     }
 
     const complaint = await db.complaint.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         user: true,
         assignedTo: true,
@@ -78,7 +80,7 @@ export async function POST(
         data: {
           content,
           isInternal: commentIsInternal,
-          complaintId: params.id,
+          complaintId: id,
           authorId: session.user.id,
         },
         include: {
@@ -93,13 +95,13 @@ export async function POST(
       });
 
       await tx.complaint.update({
-        where: { id: params.id },
+        where: { id },
         data: { updatedAt: new Date() },
       });
 
       await tx.complaintActivity.create({
         data: {
-          complaintId: params.id,
+          complaintId: id,
           userId: session.user.id,
           action: ActivityAction.COMMENT_ADDED,
           comment: commentIsInternal
@@ -114,7 +116,7 @@ export async function POST(
         if (complaint.userId !== session.user.id) {
           notificationsToCreate.push({
             userId: complaint.userId,
-            complaintId: params.id,
+            complaintId: id,
             title: "New Comment",
             message: `${session.user.name ?? "Someone"} commented on your complaint`,
             type: NotificationType.COMMENT_ADDED,
@@ -128,7 +130,7 @@ export async function POST(
         ) {
           notificationsToCreate.push({
             userId: complaint.assignedToId,
-            complaintId: params.id,
+            complaintId: id,
             title: "New Comment on Assigned Complaint",
             message: `${session.user.name ?? "Someone"} commented on complaint: ${complaint.title}`,
             type: NotificationType.COMMENT_ADDED,
@@ -158,13 +160,15 @@ export async function POST(
 // GET - Get all comments for a complaint
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
 
+    const { id } = await params;
+
     const complaint = await db.complaint.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!complaint || complaint.deletedAt) {
@@ -183,7 +187,7 @@ export async function GET(
 
     const comments = await db.comment.findMany({
       where: {
-        complaintId: params.id,
+        complaintId: id,
         ...(canSeeInternal ? {} : { isInternal: false }),
       },
       include: {
@@ -204,7 +208,7 @@ export async function GET(
 
     const totalCount = await db.comment.count({
       where: {
-        complaintId: params.id,
+        complaintId: id,
         ...(canSeeInternal ? {} : { isInternal: false }),
       },
     });
