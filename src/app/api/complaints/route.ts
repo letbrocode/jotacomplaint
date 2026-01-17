@@ -3,8 +3,8 @@ import { db } from "~/server/db";
 import { auth } from "~/server/auth";
 import {
   ActivityAction,
-  Priority,
-  ComplaintCategory as Category,
+  type Priority,
+  type ComplaintCategory as Category,
   Status,
 } from "@prisma/client";
 

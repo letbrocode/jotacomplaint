@@ -4,8 +4,8 @@ import { db } from "~/server/db";
 import {
   ActivityAction,
   NotificationType,
-  Status,
-  Priority,
+  type Status,
+  type Priority,
 } from "@prisma/client";
 
 type UpdateComplaintBody = {

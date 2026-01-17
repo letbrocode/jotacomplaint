@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "~/server/db";
 import { auth } from "~/server/auth";
-import { ActivityAction, Status } from "@prisma/client";
+import { ActivityAction, type Status } from "@prisma/client";
 
 type UpdateStatusBody = {
   status: Status;
