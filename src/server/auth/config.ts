@@ -5,7 +5,7 @@ import { type DefaultSession, type NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { env } from "~/env";
 import { signInSchema } from "~/schemas/auth";
-
+import type { Adapter } from "next-auth/adapters" 
 import { db } from "~/server/db";
 
 /**
@@ -89,7 +89,7 @@ export const authConfig = {
     strategy: "jwt",
     maxAge: 15 * 24 * 60 * 60,
   },
-  adapter: PrismaAdapter(db),
+  adapter: PrismaAdapter(db) as Adapter,
   callbacks: {
     jwt({ token, user }) {
       if (user) {
