@@ -64,14 +64,17 @@ const Signup = () => {
   };
 
   return (
-    <div className="flex h-screen items-center justify-center">
+    <div className="flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex w-full max-w-sm flex-col gap-4">
-        <Link href="/" className="flex items-center gap-2">
+        <Link
+          href="/"
+          className="text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm"
+        >
           <IoMdArrowBack className="h-4 w-4" />
           <p className="leading-7">Go back</p>
         </Link>
 
-        <Card className="w-full max-w-sm">
+        <Card className="w-full">
           <CardHeader>
             <CardTitle className="text-2xl">Sign Up</CardTitle>
             <CardDescription>
@@ -80,7 +83,7 @@ const Signup = () => {
           </CardHeader>
           <CardContent>
             <form
-              id="signin-form"
+              id="signup-form"
               onSubmit={handleSubmit(onSubmit)}
               className="space-y-4"
             >
@@ -114,11 +117,15 @@ const Signup = () => {
                     <Button
                       type="button"
                       variant="ghost"
-                      size="sm"
-                      className="absolute top-2 right-2 h-6 w-6"
+                      size="icon"
+                      className="absolute inset-y-0 right-0 mr-1 flex h-full w-10 items-center justify-center"
                       onClick={() => setShowPassword(!showPassword)}
                     >
-                      {showPassword ? <EyeOff /> : <Eye />}
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                   {errors.password && (
@@ -133,7 +140,7 @@ const Signup = () => {
           <CardFooter className="flex-col gap-2">
             <Button
               type="submit"
-              form="signin-form"
+              form="signup-form"
               className="w-full"
               disabled={isLoading}
             >

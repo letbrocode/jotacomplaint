@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
@@ -54,7 +54,7 @@ export default function AdminComplaintsPage() {
   });
   const [sortBy, setSortBy] = useState<string>("newest");
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -84,11 +84,11 @@ export default function AdminComplaintsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void fetchData();
-  }, []);
+  }, [fetchData]);
 
   // Memoized filtered and sorted complaints
   const filteredComplaints = useMemo(() => {
@@ -113,10 +113,10 @@ export default function AdminComplaintsPage() {
       const searchLower = filters.search.toLowerCase();
       result = result.filter(
         (c) =>
-          c.title.toLowerCase().includes(searchLower) ??
-          c.details.toLowerCase().includes(searchLower) ??
-          c.location?.toLowerCase().includes(searchLower) ??
-          c.user.name?.toLowerCase().includes(searchLower),
+          c.title.toLowerCase().includes(searchLower) ||
+          c.details?.toLowerCase().includes(searchLower) ||
+          c.location?.toLowerCase().includes(searchLower) ||
+          c.user?.name?.toLowerCase().includes(searchLower),
       );
     }
 
@@ -171,11 +171,14 @@ export default function AdminComplaintsPage() {
   );
 
   // Optimistic update for complaint changes
-  const handleComplaintUpdate = (updatedComplaint: ComplaintWithRelations) => {
-    setComplaints((prev) =>
-      prev.map((c) => (c.id === updatedComplaint.id ? updatedComplaint : c)),
-    );
-  };
+  const handleComplaintUpdate = useCallback(
+    (updatedComplaint: ComplaintWithRelations) => {
+      setComplaints((prev) =>
+        prev.map((c) => (c.id === updatedComplaint.id ? updatedComplaint : c)),
+      );
+    },
+    [],
+  );
 
   const resetFilters = () => {
     setFilters({
@@ -190,15 +193,26 @@ export default function AdminComplaintsPage() {
 
   if (loading) {
     return (
-      <div className="space-y-4 p-4">
-        <Skeleton className="h-10 w-64" />
-        <div className="flex gap-4">
+      <div className="space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-10 w-40" />
+            <Skeleton key={i} className="h-24 w-full rounded-lg" />
           ))}
         </div>
+        <div className="space-y-4">
+          <Skeleton className="h-12 w-96" />
+          <div className="flex flex-wrap gap-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-24 rounded-md" />
+            ))}
+          </div>
+        </div>
         {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-40 w-full" />
+          <Skeleton key={i} className="h-64 w-full rounded-lg" />
         ))}
       </div>
     );
@@ -206,20 +220,22 @@ export default function AdminComplaintsPage() {
 
   if (error) {
     return (
-      <div className="flex min-h-[400px] flex-col items-center justify-center space-y-4 p-8">
-        <AlertTriangle className="h-16 w-16 text-red-500" />
-        <h2 className="text-2xl font-bold">Error Loading Complaints</h2>
-        <p className="text-muted-foreground text-center">{error}</p>
-        <Button onClick={fetchData}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Try Again
-        </Button>
+      <div className="flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
+        <div className="w-full max-w-md space-y-4 text-center">
+          <AlertTriangle className="text-destructive mx-auto h-16 w-16" />
+          <h2 className="text-2xl font-bold">Error Loading Complaints</h2>
+          <p className="text-muted-foreground">{error}</p>
+          <Button onClick={fetchData}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Try Again
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 px-4 py-8 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -262,10 +278,12 @@ export default function AdminComplaintsPage() {
       </div>
 
       {/* Filters and Search */}
-      <div className="space-y-4 rounded-lg border p-4">
-        <div className="flex items-center gap-2">
-          <Filter className="h-5 w-5" />
-          <h3 className="font-semibold">Filters</h3>
+      <div className="space-y-4 rounded-lg border p-4 sm:p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-2">
+            <Filter className="h-5 w-5" />
+            <h3 className="font-semibold">Filters</h3>
+          </div>
           {(filters.status !== "all" ||
             filters.priority !== "all" ||
             filters.category !== "all" ||
@@ -296,7 +314,7 @@ export default function AdminComplaintsPage() {
         </div>
 
         {/* Filter Dropdowns */}
-        <div className="flex gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
           <Select
             value={filters.status}
             onValueChange={(value) =>
@@ -412,7 +430,7 @@ export default function AdminComplaintsPage() {
       </div>
 
       {/* Results Count */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
         <p className="text-muted-foreground text-sm">
           Showing {filteredComplaints.length} of {complaints.length} complaints
         </p>

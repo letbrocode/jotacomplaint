@@ -49,7 +49,7 @@ const CHART_COLORS = [COLORS.pending, COLORS.inProgress, COLORS.resolved];
 
 function DashboardSkeleton() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 sm:px-6 lg:px-8">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} className="h-32 w-full" />
@@ -213,21 +213,23 @@ export default function AdminDashboardPage() {
 
   if (error) {
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center space-y-4">
-        <AlertTriangle className="text-destructive h-16 w-16" />
-        <h2 className="text-2xl font-bold">Something went wrong</h2>
-        <p className="text-muted-foreground text-center">{error}</p>
-        <Button onClick={fetchComplaints}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Try Again
-        </Button>
+      <div className="flex min-h-screen items-center justify-center px-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-md space-y-4 text-center">
+          <AlertTriangle className="text-destructive mx-auto h-16 w-16" />
+          <h2 className="text-2xl font-bold">Something went wrong</h2>
+          <p className="text-muted-foreground">{error}</p>
+          <Button onClick={fetchComplaints}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Try Again
+          </Button>
+        </div>
       </div>
     );
   }
 
   if (complaints.length === 0) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
@@ -292,9 +294,9 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 py-8 sm:px-6 lg:px-8">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
           <p className="text-muted-foreground">
@@ -448,7 +450,7 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Pie Chart - FIXED */}
+        {/* Pie Chart */}
         <Card className="lg:col-span-3">
           <CardHeader>
             <CardTitle>Status Distribution</CardTitle>
@@ -494,7 +496,7 @@ export default function AdminDashboardPage() {
       {/* Department Bar Chart */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
             <div>
               <CardTitle>Complaints by Department</CardTitle>
               <p className="text-muted-foreground text-sm">
@@ -562,7 +564,7 @@ export default function AdminDashboardPage() {
 
       {/* Recent Complaints */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div>
             <CardTitle>Recent Complaints</CardTitle>
             <p className="text-muted-foreground text-sm">
@@ -583,17 +585,23 @@ export default function AdminDashboardPage() {
                 <Link
                   key={complaint.id}
                   href={`/admin/complaints/${complaint.id}`}
-                  className="hover:bg-muted/50 block rounded-lg border p-4 transition-all hover:shadow-md"
+                  className="hover:bg-muted/50 block overflow-auto rounded-lg border p-4 transition-all hover:shadow-md"
                 >
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-start">
                     <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <h3 className="font-semibold">{complaint.title}</h3>
                         <Badge
                           variant="outline"
                           className={getStatusColor(complaint.status)}
                         >
                           {complaint.status.replace("_", " ")}
+                        </Badge>
+                        <Badge
+                          variant="secondary"
+                          className={getPriorityColor(complaint.priority)}
+                        >
+                          {complaint.priority}
                         </Badge>
                       </div>
                       <p className="text-muted-foreground line-clamp-1 text-sm">
@@ -617,13 +625,13 @@ export default function AdminDashboardPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <Badge
+                    <div className="flex flex-col items-end gap-2 pt-2 sm:pt-0">
+                      {/* <Badge
                         variant="secondary"
                         className={getPriorityColor(complaint.priority)}
                       >
                         {complaint.priority}
-                      </Badge>
+                      </Badge> */}
                       <ArrowRight className="text-muted-foreground h-4 w-4" />
                     </div>
                   </div>
