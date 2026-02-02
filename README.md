@@ -131,6 +131,6 @@ npx prisma db seed
 
 ## 🔐 Default Credentials
 
-- Admin: admin@example.com / admin123
-- Staff: staff@example.com / staff123
-- User: user@example.com / user123
+- Admin: admin@example.com / 12345678
+- Staff: staff@example.com / 12345678
+- User: user@example.com / 12345678
