@@ -4,6 +4,9 @@
   <img src="./public/landing.png" alt="App Preview" width="800" />
 </p>
 
+## Demo:
+https://thumbnailsgen.vercel.app/
+
 A modern, full-stack web application built with the **T3 Stack** (Next.js 15, TypeScript, Tailwind CSS, Prisma, Auth.js) for efficient municipal complaint tracking and resolution.
 
 [![Next.js](https://img.shields.io/badge/Next.js-15-blue.svg)](https://nextjs.org/)
