@@ -4,6 +4,9 @@
   <img src="./public/landing.png" alt="App Preview" width="800" />
 </p>
 
+## Demo:
+https://jotacomplaint.onrender.com/
+
 A modern, full-stack web application built with the **T3 Stack** (Next.js 15, TypeScript, Tailwind CSS, Prisma, Auth.js) for efficient municipal complaint tracking and resolution.
 
 [![Next.js](https://img.shields.io/badge/Next.js-15-blue.svg)](https://nextjs.org/)
@@ -131,6 +134,6 @@ npx prisma db seed
 
 ## 🔐 Default Credentials
 
-- Admin: admin@example.com / admin123
-- Staff: staff@example.com / staff123
-- User: user@example.com / user123
+- Admin: admin@example.com / 12345678
+- Staff: staff@example.com / 12345678
+- User: user@example.com / 12345678
