@@ -134,6 +134,7 @@ npx prisma db seed
 
 ## 🔐 Default Credentials
 
-- Admin: admin@example.com / 12345678
-- Staff: staff@example.com / 12345678
-- User: user@example.com / 12345678
+- Admin: admin@municipality.gov / 12345678
+- Staff: sanitation.officer@municipality.gov / 12345678 
+- User: priya.sharma@gmail.com / 12345678
+- Look into seed.ts for more test credentials
