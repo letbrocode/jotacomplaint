@@ -14,7 +14,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Navigation } from "lucide-react";
 
 // Fix Leaflet default icon issue
 delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)
@@ -348,6 +348,23 @@ export default function AdminComplaintsMap({
                       {location.description}
                     </p>
                   )}
+                  {/* Add Navigation Button */}
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                      const baseUrl =
+                        userRole === "ADMIN"
+                          ? "/admin"
+                          : userRole === "STAFF"
+                            ? "/staff"
+                            : "/dashboard";
+                      window.location.href = `${baseUrl}/locations/${location.id}`;
+                    }}
+                  >
+                    <Navigation className="mr-2 h-3 w-3" />
+                    Navigate Here
+                  </Button>
                 </div>
               </Popup>
             </Marker>
