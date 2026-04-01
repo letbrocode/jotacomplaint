@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JotaComplaint — Product Showcase</title>
+
+  <!-- Reveal.js core -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ───────────────────────────  PALETTE  ─────────────────────────── */
+    :root {
+      --brand:        #6C5CE7;
+      --brand-light:  #A29BFE;
+      --accent:       #00CEC9;
+      --accent-warm:  #FDCB6E;
+      --surface:      #0B0E17;
+      --surface-2:    #141928;
+      --text:         #E8EAED;
+      --text-muted:   #8B92A5;
+      --success:      #00B894;
+      --danger:       #FF6B6B;
+      --glass:        rgba(255,255,255,0.06);
+      --glass-border: rgba(255,255,255,0.08);
+    }
+
+    /* ───────────────────────────  RESET  ───────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ───────────────────────────  BASE  ────────────────────────────── */
+    .reveal-viewport {
+      background: var(--surface);
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+
+    .reveal {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 32px;
+      color: var(--text);
+    }
+
+    .reveal .slides { text-align: left; }
+
+    .reveal .slides section {
+      padding: 60px 80px;
+      height: 100%;
+      display: flex !important;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    /* ───────────────────  BACKGROUND GRADIENTS  ───────────────────── */
+    .reveal .slides section[data-bg="title"] {
+      background:
+        radial-gradient(ellipse 80% 60% at 15% 85%, rgba(108,92,231,.35) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 85% 20%, rgba(0,206,201,.25) 0%, transparent 55%),
+        linear-gradient(160deg, #0B0E17 0%, #141928 100%);
+    }
+    .reveal .slides section[data-bg="brand"] {
+      background:
+        radial-gradient(ellipse 70% 55% at 80% 80%, rgba(108,92,231,.30) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 10% 15%, rgba(0,206,201,.18) 0%, transparent 55%),
+        linear-gradient(135deg, #0B0E17 0%, #141928 100%);
+    }
+    .reveal .slides section[data-bg="accent"] {
+      background:
+        radial-gradient(ellipse 65% 50% at 20% 75%, rgba(0,206,201,.30) 0%, transparent 60%),
+        radial-gradient(ellipse 55% 45% at 85% 15%, rgba(108,92,231,.20) 0%, transparent 55%),
+        linear-gradient(145deg, #0B0E17 0%, #141928 100%);
+    }
+    .reveal .slides section[data-bg="warm"] {
+      background:
+        radial-gradient(ellipse 70% 55% at 75% 80%, rgba(253,203,110,.18) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 15% 20%, rgba(108,92,231,.22) 0%, transparent 55%),
+        linear-gradient(155deg, #0B0E17 0%, #141928 100%);
+    }
+    .reveal .slides section[data-bg="end"] {
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 50%, rgba(108,92,231,.28) 0%, transparent 55%),
+        radial-gradient(ellipse 60% 50% at 20% 80%, rgba(0,206,201,.18) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 80% 20%, rgba(253,203,110,.12) 0%, transparent 55%),
+        linear-gradient(160deg, #0B0E17 0%, #141928 100%);
+    }
+
+    /* ───────────────────  TYPOGRAPHY  ──────────────────────────────── */
+    .slide-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--brand-light);
+      margin-bottom: 20px;
+    }
+    .slide-label::before {
+      content: '';
+      display: inline-block;
+      width: 28px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--brand), var(--accent));
+      border-radius: 2px;
+    }
+
+    .slide-title {
+      font-size: 2.6em;
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -1.5px;
+      color: var(--text);
+      margin-bottom: 24px;
+    }
+    .slide-title .highlight {
+      background: linear-gradient(135deg, var(--brand-light), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .slide-subtitle {
+      font-size: 1.1em;
+      font-weight: 400;
+      line-height: 1.65;
+      color: var(--text-muted);
+      max-width: 760px;
+    }
+
+    .section-heading {
+      font-size: 1.5em;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--text);
+      margin-bottom: 36px;
+    }
+    .section-heading .num {
+      color: var(--brand-light);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85em;
+      margin-right: 10px;
+    }
+
+    /* ───────────────────  GLASS CARDS  ─────────────────────────────── */
+    .card-grid {
+      display: grid;
+      gap: 18px;
+    }
+    .card-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+    .card-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+    .glass-card {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 28px 30px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: transform 0.35s cubic-bezier(.25,.8,.25,1),
+                  border-color 0.35s ease,
+                  box-shadow 0.35s ease;
+    }
+    .glass-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(108,92,231,.35);
+      box-shadow: 0 12px 40px rgba(108,92,231,.12);
+    }
+
+    .card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 16px;
+      font-weight: 700;
+    }
+    .card-icon.brand  { background: rgba(108,92,231,.18); color: var(--brand-light); }
+    .card-icon.accent  { background: rgba(0,206,201,.18); color: var(--accent); }
+    .card-icon.warm    { background: rgba(253,203,110,.18); color: var(--accent-warm); }
+    .card-icon.success { background: rgba(0,184,148,.18); color: var(--success); }
+
+    .card-title {
+      font-size: 0.62em;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .card-text {
+      font-size: 0.48em;
+      font-weight: 400;
+      line-height: 1.6;
+      color: var(--text-muted);
+    }
+
+    /* ───────────────────  LIST ITEMS  ──────────────────────────────── */
+    .obj-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .obj-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      font-size: 0.58em;
+      line-height: 1.55;
+      color: var(--text-muted);
+    }
+    .obj-list li .bullet {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(108,92,231,.15);
+      color: var(--brand-light);
+      margin-top: 1px;
+    }
+    .obj-list li strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* ───────────────────  METHODOLOGY FLOW  ────────────────────────── */
+    .flow-steps {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .flow-step {
+      flex: 1;
+      text-align: center;
+      position: relative;
+    }
+    .flow-step .step-num {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      margin: 0 auto 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+      color: #fff;
+      position: relative;
+      z-index: 2;
+    }
+    .flow-step:nth-child(1) .step-num { background: linear-gradient(135deg, var(--brand), #8B7CF7); }
+    .flow-step:nth-child(3) .step-num { background: linear-gradient(135deg, #5B86E5, var(--accent)); }
+    .flow-step:nth-child(5) .step-num { background: linear-gradient(135deg, var(--accent), #00B894); }
+    .flow-step:nth-child(7) .step-num { background: linear-gradient(135deg, #00B894, var(--accent-warm)); }
+    .flow-step:nth-child(9) .step-num { background: linear-gradient(135deg, var(--accent-warm), #E17055); }
+
+    .flow-step .step-title {
+      font-size: 0.52em;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .flow-step .step-desc {
+      font-size: 0.4em;
+      color: var(--text-muted);
+      line-height: 1.5;
+      padding: 0 4px;
+    }
+
+    .flow-arrow {
+      flex-shrink: 0;
+      width: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-top: 14px;
+      color: var(--text-muted);
+      font-size: 18px;
+      opacity: 0.4;
+    }
+
+    /* ───────────────────  RESULTS METRICS  ─────────────────────────── */
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .metric-card {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      padding: 22px 20px;
+      text-align: center;
+      backdrop-filter: blur(12px);
+      transition: transform 0.3s ease, border-color 0.3s ease;
+    }
+    .metric-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(108,92,231,.30);
+    }
+    .metric-val {
+      font-size: 1.3em;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 4px;
+    }
+    .metric-val.brand  { color: var(--brand-light); }
+    .metric-val.accent { color: var(--accent); }
+    .metric-val.warm   { color: var(--accent-warm); }
+    .metric-val.success { color: var(--success); }
+    .metric-label {
+      font-size: 0.42em;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .result-features {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 24px;
+    }
+    .result-feat {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.52em;
+      color: var(--text-muted);
+    }
+    .result-feat .check {
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      background: rgba(0,184,148,.15);
+      color: var(--success);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    /* ───────────────────  TITLE SLIDE SPECIALS  ────────────────────── */
+    .title-slide .logo-mark {
+      width: 72px;
+      height: 72px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, var(--brand), var(--accent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 28px;
+      box-shadow: 0 8px 32px rgba(108,92,231,.35);
+    }
+
+    .title-slide .hero-title {
+      font-size: 3.2em;
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -2px;
+      margin-bottom: 20px;
+    }
+    .title-slide .hero-sub {
+      font-size: 1.15em;
+      color: var(--text-muted);
+      font-weight: 400;
+      max-width: 680px;
+      line-height: 1.6;
+      margin-bottom: 36px;
+    }
+
+    .tech-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .tech-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 100px;
+      font-size: 0.42em;
+      font-weight: 600;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      color: var(--text-muted);
+      backdrop-filter: blur(8px);
+      transition: border-color 0.3s ease, color 0.3s ease;
+    }
+    .tech-pill:hover {
+      border-color: rgba(108,92,231,.4);
+      color: var(--text);
+    }
+    .tech-pill .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+    .tech-pill .dot.purple { background: var(--brand-light); }
+    .tech-pill .dot.teal   { background: var(--accent); }
+    .tech-pill .dot.amber  { background: var(--accent-warm); }
+    .tech-pill .dot.green  { background: var(--success); }
+
+    /* ───────────────────  CONCLUSION SLIDE ─────────────────────────── */
+    .conclusion-points {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      margin-top: 8px;
+    }
+    .con-point {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 18px 22px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      backdrop-filter: blur(12px);
+      transition: transform 0.3s ease, border-color 0.3s ease;
+    }
+    .con-point:hover {
+      transform: translateX(6px);
+      border-color: rgba(108,92,231,.30);
+    }
+    .con-icon {
+      flex-shrink: 0;
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .con-point .con-text {
+      font-size: 0.55em;
+      line-height: 1.55;
+      color: var(--text-muted);
+    }
+    .con-point .con-text strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .final-cta {
+      margin-top: 32px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-size: 0.5em;
+      font-weight: 700;
+      text-decoration: none;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .cta-btn.primary {
+      background: linear-gradient(135deg, var(--brand), #8B7CF7);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(108,92,231,.35);
+    }
+    .cta-btn.primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(108,92,231,.45);
+    }
+    .cta-btn.ghost {
+      background: var(--glass);
+      color: var(--text-muted);
+      border: 1px solid var(--glass-border);
+    }
+    .cta-btn.ghost:hover {
+      border-color: rgba(108,92,231,.35);
+      color: var(--text);
+      transform: translateY(-2px);
+    }
+
+    /* small separator bar */
+    .divider {
+      width: 48px;
+      height: 3px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--brand), var(--accent));
+      margin: 16px 0 24px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       AUTO-PLAY STAGGERED ANIMATIONS
+       Elements are invisible by default. When Reveal.js adds .present
+       to the active slide, keyframe animations fire automatically
+       with staggered delays — no clicking needed.
+    ═══════════════════════════════════════════════════════════════════ */
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.88); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    @keyframes slideRight {
+      from { opacity: 0; transform: translateX(-40px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* All animated elements start invisible */
+    .a-fade-up,
+    .a-scale-in,
+    .a-slide-right {
+      opacity: 0;
+    }
+
+    /* When the slide becomes active (.present), run the animation */
+    .present .a-fade-up {
+      animation: fadeUp 0.65s cubic-bezier(.25,.8,.25,1) forwards;
+    }
+    .present .a-scale-in {
+      animation: scaleIn 0.6s cubic-bezier(.25,.8,.25,1) forwards;
+    }
+    .present .a-slide-right {
+      animation: slideRight 0.6s cubic-bezier(.25,.8,.25,1) forwards;
+    }
+
+    /* Stagger delay classes — d1=100ms, d2=200ms, … d10=1000ms */
+    .d1  { animation-delay: 0.1s !important; }
+    .d2  { animation-delay: 0.2s !important; }
+    .d3  { animation-delay: 0.3s !important; }
+    .d4  { animation-delay: 0.4s !important; }
+    .d5  { animation-delay: 0.5s !important; }
+    .d6  { animation-delay: 0.6s !important; }
+    .d7  { animation-delay: 0.7s !important; }
+    .d8  { animation-delay: 0.8s !important; }
+    .d9  { animation-delay: 0.9s !important; }
+    .d10 { animation-delay: 1.0s !important; }
+    .d11 { animation-delay: 1.1s !important; }
+    .d12 { animation-delay: 1.2s !important; }
+
+    /* ───────────────────  PROGRESS & CONTROLS  ────────────────────── */
+    .reveal .progress { height: 3px; }
+    .reveal .progress span { background: linear-gradient(90deg, var(--brand), var(--accent)); }
+
+    .reveal .controls .controls-arrow {
+      color: var(--brand-light);
+    }
+
+    .reveal .slide-number {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+      background: transparent !important;
+    }
+
+    /* ───────────  RESPONSIVE TWEAKS  ──────────────────────────────── */
+    @media (max-width: 960px) {
+      .reveal .slides section { padding: 40px 36px; }
+      .card-grid.cols-2, .card-grid.cols-3 { grid-template-columns: 1fr; }
+      .metrics-row { grid-template-columns: 1fr 1fr; }
+      .flow-steps { flex-direction: column; align-items: center; }
+      .flow-arrow { transform: rotate(90deg); padding: 0; }
+      .result-features { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ══════════════════  SLIDE 1 — TITLE  ══════════════════ -->
+      <section data-bg="title" data-transition="fade" class="title-slide">
+        <div class="logo-mark a-scale-in d1">J</div>
+        <h1 class="hero-title a-fade-up d2">
+          <span class="highlight">Jota</span>Complaint
+        </h1>
+        <p class="hero-sub a-fade-up d3">
+          A modern, full-stack Municipal Complaint Management System that empowers citizens to report issues, enables staff to resolve them, and gives administrators real-time visibility.
+        </p>
+        <div class="tech-pills a-fade-up d4">
+          <span class="tech-pill"><span class="dot purple"></span>Next.js 16</span>
+          <span class="tech-pill"><span class="dot purple"></span>TypeScript</span>
+          <span class="tech-pill"><span class="dot teal"></span>Prisma ORM</span>
+          <span class="tech-pill"><span class="dot teal"></span>PostgreSQL</span>
+          <span class="tech-pill"><span class="dot amber"></span>Auth.js</span>
+          <span class="tech-pill"><span class="dot green"></span>Tailwind CSS</span>
+          <span class="tech-pill"><span class="dot amber"></span>Leaflet Maps</span>
+          <span class="tech-pill"><span class="dot green"></span>ImageKit CDN</span>
+        </div>
+      </section>
+
+      <!-- ══════════════════  SLIDE 2 — ABSTRACT & AIM  ══════════════════ -->
+      <section data-bg="brand" data-transition="slide">
+        <span class="slide-label a-fade-up d1">Abstract</span>
+        <h2 class="section-heading a-fade-up d2"><span class="num">01</span> What is JotaComplaint?</h2>
+        <div class="card-grid cols-2">
+          <div class="glass-card a-fade-up d3">
+            <div class="card-icon brand">🎯</div>
+            <div class="card-title">The Problem</div>
+            <div class="card-text">
+              Municipal complaints are lodged via phone calls or physical visits — with <strong style="color:var(--danger)">zero transparency</strong>, no tracking, and no accountability. Complaints go unresolved for weeks.
+            </div>
+          </div>
+          <div class="glass-card a-fade-up d4">
+            <div class="card-icon accent">💡</div>
+            <div class="card-title">Our Solution</div>
+            <div class="card-text">
+              A <strong style="color:var(--accent)">three-portal web platform</strong> (Citizen, Staff, Admin) built with the T3 Stack — enabling photo uploads, GPS-tagged locations, real-time status tracking, and analytics dashboards.
+            </div>
+          </div>
+          <div class="glass-card a-fade-up d5" style="grid-column: 1 / -1;">
+            <div class="card-icon warm">📌</div>
+            <div class="card-title">Aim</div>
+            <div class="card-text">
+              To design and develop a <strong style="color:var(--accent-warm)">scalable, role-based web application</strong> that digitizes the municipal complaint management process — improving transparency, accountability, and resolution time for civic issues.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════  SLIDE 3 — OBJECTIVES  ══════════════════ -->
+      <section data-bg="accent" data-transition="slide">
+        <span class="slide-label a-fade-up d1">Objectives</span>
+        <h2 class="section-heading a-fade-up d2"><span class="num">02</span> Our Key Objectives</h2>
+        <div class="card-grid cols-2">
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <ul class="obj-list">
+              <li class="a-slide-right d3">
+                <span class="bullet">1</span>
+                <span><strong>Citizen Reporting</strong> — Submit complaints with photos, GPS location, and categorization</span>
+              </li>
+              <li class="a-slide-right d4">
+                <span class="bullet">2</span>
+                <span><strong>Automated Routing</strong> — Assign complaints to relevant departments by category</span>
+              </li>
+              <li class="a-slide-right d5">
+                <span class="bullet">3</span>
+                <span><strong>Real-time Tracking</strong> — Citizens can monitor live status updates at every stage</span>
+              </li>
+              <li class="a-slide-right d6">
+                <span class="bullet">4</span>
+                <span><strong>Staff Portal</strong> — Dedicated hub for assigned complaints, internal notes, and field navigation</span>
+              </li>
+            </ul>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <ul class="obj-list">
+              <li class="a-slide-right d5">
+                <span class="bullet">5</span>
+                <span><strong>Admin Dashboard</strong> — Analytics, charts, user/department management</span>
+              </li>
+              <li class="a-slide-right d6">
+                <span class="bullet">6</span>
+                <span><strong>Audit Trail</strong> — Immutable activity logs for every action on a complaint</span>
+              </li>
+              <li class="a-slide-right d7">
+                <span class="bullet">7</span>
+                <span><strong>Notification System</strong> — In-app alerts at each lifecycle stage</span>
+              </li>
+              <li class="a-slide-right d8">
+                <span class="bullet">8</span>
+                <span><strong>Secure by Design</strong> — RBAC, bcrypt hashing, DB sessions, Zod validation</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════  SLIDE 4 — METHODOLOGY  ══════════════════ -->
+      <section data-bg="warm" data-transition="slide">
+        <span class="slide-label a-fade-up d1">Methodology</span>
+        <h2 class="section-heading a-fade-up d2"><span class="num">03</span> Development Approach</h2>
+        <div class="flow-steps a-scale-in d3">
+          <div class="flow-step">
+            <div class="step-num">1</div>
+            <div class="step-title">Planning</div>
+            <div class="step-desc">Requirements, personas, ER design, complaint lifecycle mapping</div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="step-num">2</div>
+            <div class="step-title">Foundation</div>
+            <div class="step-desc">T3 Stack setup, Prisma schema, Auth.js with DB sessions</div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="step-num">3</div>
+            <div class="step-title">Backend</div>
+            <div class="step-desc">Server Actions, CRUD, activity logging, auto-notifications</div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="step-num">4</div>
+            <div class="step-title">Frontend</div>
+            <div class="step-desc">shadcn/ui, Recharts, Leaflet maps, ImageKit uploads</div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="step-num">5</div>
+            <div class="step-title">Deploy</div>
+            <div class="step-desc">Testing, responsive polish, cloud deployment on Render</div>
+          </div>
+        </div>
+        <div class="divider a-fade-up d5" style="margin-top:32px;"></div>
+        <div class="card-grid cols-3 a-fade-up d6">
+          <div class="glass-card" style="padding:18px 22px;">
+            <div class="card-title" style="font-size:0.5em;">🗄️ Architecture</div>
+            <div class="card-text" style="font-size:0.4em;">Monolithic full-stack — Server Components + Server Actions (no REST API needed)</div>
+          </div>
+          <div class="glass-card" style="padding:18px 22px;">
+            <div class="card-title" style="font-size:0.5em;">🔐 Auth Strategy</div>
+            <div class="card-text" style="font-size:0.4em;">Database sessions via Auth.js + Prisma adapter. Middleware guards every route by role.</div>
+          </div>
+          <div class="glass-card" style="padding:18px 22px;">
+            <div class="card-title" style="font-size:0.5em;">📊 Data Layer</div>
+            <div class="card-text" style="font-size:0.4em;">8 models, 7 enums, indexed FKs, soft deletes, cascade integrity via Prisma ORM.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════  SLIDE 5 — RESULTS  ══════════════════ -->
+      <section data-bg="brand" data-transition="slide">
+        <span class="slide-label a-fade-up d1">Results</span>
+        <h2 class="section-heading a-fade-up d2"><span class="num">04</span> What We Delivered</h2>
+        <div class="metrics-row a-scale-in d3">
+          <div class="metric-card">
+            <div class="metric-val brand">3</div>
+            <div class="metric-label">User Portals</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-val accent">8</div>
+            <div class="metric-label">Database Models</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-val warm">22+</div>
+            <div class="metric-label">UI Components</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-val success">100%</div>
+            <div class="metric-label">Type-Safe</div>
+          </div>
+        </div>
+        <div class="result-features">
+          <div class="result-feat a-fade-up d4"><span class="check">✓</span>Complete complaint lifecycle — Pending → In Progress → Resolved</div>
+          <div class="result-feat a-fade-up d4"><span class="check">✓</span>Interactive Leaflet maps with GPS complaint pinning</div>
+          <div class="result-feat a-fade-up d5"><span class="check">✓</span>Admin analytics dashboard with Recharts</div>
+          <div class="result-feat a-fade-up d5"><span class="check">✓</span>Photo uploads optimized via ImageKit CDN</div>
+          <div class="result-feat a-fade-up d6"><span class="check">✓</span>In-app notification system at every stage</div>
+          <div class="result-feat a-fade-up d6"><span class="check">✓</span>Immutable audit trail for all complaint actions</div>
+          <div class="result-feat a-fade-up d7"><span class="check">✓</span>Responsive design — mobile, tablet, desktop</div>
+          <div class="result-feat a-fade-up d7"><span class="check">✓</span>Cloud deployed on Render — live and accessible</div>
+        </div>
+      </section>
+
+      <!-- ══════════════════  SLIDE 6 — CONCLUSION  ══════════════════ -->
+      <section data-bg="end" data-transition="fade">
+        <span class="slide-label a-fade-up d1">Conclusion</span>
+        <h2 class="section-heading a-fade-up d2"><span class="num">05</span> Wrapping Up</h2>
+        <div class="conclusion-points">
+          <div class="con-point a-slide-right d3">
+            <div class="con-icon card-icon brand">🌉</div>
+            <div class="con-text"><strong>Bridging the gap</strong> between citizens and local government — every complaint is documented, routed, tracked, and resolved with full transparency.</div>
+          </div>
+          <div class="con-point a-slide-right d4">
+            <div class="con-icon card-icon accent">⚡</div>
+            <div class="con-text"><strong>Modern stack, real results</strong> — Next.js Server Actions, Prisma ORM, and Auth.js deliver a type-safe, performant, and maintainable codebase with zero API boilerplate.</div>
+          </div>
+          <div class="con-point a-slide-right d5">
+            <div class="con-icon card-icon warm">🚀</div>
+            <div class="con-text"><strong>Production-ready</strong> — deployed on the cloud, responsive on every device, with a clear path to future enhancements like AI auto-categorization, email/SMS alerts, and multi-tenancy.</div>
+          </div>
+        </div>
+        <div class="final-cta a-fade-up d7">
+          <a href="https://jotacomplaint.onrender.com/" target="_blank" class="cta-btn primary">
+            🔗 Live Demo
+          </a>
+          <a href="https://github.com/letbrocode/jotacomplaint" target="_blank" class="cta-btn ghost">
+            📂 Source Code
+          </a>
+        </div>
+      </section>
+
+    </div><!-- /slides -->
+  </div><!-- /reveal -->
+
+  <!-- Reveal.js -->
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+  <script>
+    Reveal.initialize({
+      hash: true,
+      center: false,
+      width: 1280,
+      height: 720,
+      margin: 0,
+      slideNumber: 'c/t',
+      transition: 'slide',
+      transitionSpeed: 'default',
+      backgroundTransition: 'fade',
+      plugins: []
+    });
+  </script>
+</body>
+</html>
