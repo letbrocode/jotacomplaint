@@ -478,9 +478,9 @@ JotaComplaint is not just a project — it is a working product deployed on the 
 ### Demo Credentials
 | Role | Email | Password |
 |---|---|---|
-| Admin | admin@example.com | 12345678 |
-| Staff | staff@example.com | 12345678 |
-| User | user@example.com | 12345678 |
+| Admin | admin@municipality.gov | 12345678 |
+| Staff | sanitation.officer@municipality.gov | 12345678 |
+| User | priya.sharma@gmail.com | 12345678 |
 
 ### Suggested Demo Flow (5–7 minutes)
 1. **Land on Home Page** → Walk through Hero, Features, How It Works, Role cards
