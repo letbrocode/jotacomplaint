@@ -1,5 +1,8 @@
-import { auth } from "~/server/auth";
+import NextAuth from "next-auth";
+import { authConfig } from "~/server/auth/config";
 import { NextResponse } from "next/server";
+
+const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
@@ -43,5 +46,12 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!.+\\.[\\w]+$|_next|api).*)"],
+  matcher: [
+    "/",
+    "/signin",
+    "/signup",
+    "/dashboard/:path*",
+    "/admin/:path*",
+    "/staff/:path*"
+  ],
 };
