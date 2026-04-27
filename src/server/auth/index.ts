@@ -29,7 +29,7 @@ const { auth: uncachedAuth, handlers, signIn, signOut } = NextAuth({
           where: { email: email.toLowerCase() },
         });
 
-        if (!user || !(await bcrypt.compare(password, user.password))) {
+        if (!user?.password || !(await bcrypt.compare(password, user.password))) {
           return null;
         }
 
