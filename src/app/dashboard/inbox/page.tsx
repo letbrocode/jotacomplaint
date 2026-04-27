@@ -32,6 +32,8 @@ const notificationIcons = {
   STATUS_UPDATED: AlertTriangle,
   COMMENT_ADDED: Bell,
   RESOLVED: CheckCheck,
+  REJECTED: AlertTriangle,
+  ESCALATED: AlertTriangle,
 };
 
 const notificationColors = {
@@ -40,6 +42,8 @@ const notificationColors = {
   STATUS_UPDATED: "border-orange-500/20 bg-orange-500/10 text-orange-600",
   COMMENT_ADDED: "border-cyan-500/20 bg-cyan-500/10 text-cyan-600",
   RESOLVED: "border-green-500/20 bg-green-500/10 text-green-600",
+  REJECTED: "border-red-500/20 bg-red-500/10 text-red-600",
+  ESCALATED: "border-orange-500/20 bg-orange-500/10 text-orange-600",
 };
 
 export default function UserInboxPage() {

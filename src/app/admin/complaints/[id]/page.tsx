@@ -225,6 +225,8 @@ export default function ComplaintDetailsPage() {
       PENDING: "border-yellow-500/20 bg-yellow-500/10 text-yellow-600",
       IN_PROGRESS: "border-blue-500/20 bg-blue-500/10 text-blue-600",
       RESOLVED: "border-green-500/20 bg-green-500/10 text-green-600",
+      REJECTED: "border-red-500/20 bg-red-500/10 text-red-600",
+      ESCALATED: "border-orange-500/20 bg-orange-500/10 text-orange-600",
     }[complaint.status] ?? "";
 
   const priorityColor =
@@ -452,6 +454,8 @@ export default function ComplaintDetailsPage() {
                     <SelectItem value="PENDING">Pending</SelectItem>
                     <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
                     <SelectItem value="RESOLVED">Resolved</SelectItem>
+                    <SelectItem value="REJECTED">Rejected</SelectItem>
+                    <SelectItem value="ESCALATED">Escalated</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

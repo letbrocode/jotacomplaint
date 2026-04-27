@@ -139,6 +139,8 @@ export default function ComplaintCard({
     PENDING: "bg-yellow-500/15 text-yellow-600 border-yellow-500/20",
     IN_PROGRESS: "bg-blue-500/15 text-blue-600 border-blue-500/20",
     RESOLVED: "bg-green-500/15 text-green-600 border-green-500/20",
+    REJECTED: "bg-red-500/15 text-red-600 border-red-500/20",
+    ESCALATED: "bg-orange-500/15 text-orange-600 border-orange-500/20",
   }[status];
 
   const isOverdue =
@@ -245,6 +247,8 @@ export default function ComplaintCard({
                     <SelectItem value="PENDING">Pending</SelectItem>
                     <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
                     <SelectItem value="RESOLVED">Resolved</SelectItem>
+                    <SelectItem value="REJECTED">Rejected</SelectItem>
+                    <SelectItem value="ESCALATED">Escalated</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

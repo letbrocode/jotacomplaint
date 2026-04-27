@@ -30,9 +30,17 @@ type StaffMember = {
   name: string | null;
   email: string | null;
   createdAt: Date;
+  updatedAt: Date;
   isActive: boolean;
-  password: string;
+  password: string | null;
+  phone: string | null;
+  avatar: string | null;
+  bio: string | null;
   role: Role;
+  emailOnCreated: boolean;
+  emailOnAssigned: boolean;
+  emailOnStatusUpdate: boolean;
+  emailOnResolved: boolean;
   departments?: Department[];
 };
 
@@ -329,6 +337,8 @@ export default function AdminComplaintsPage() {
               <SelectItem value="PENDING">Pending</SelectItem>
               <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
               <SelectItem value="RESOLVED">Resolved</SelectItem>
+              <SelectItem value="REJECTED">Rejected</SelectItem>
+              <SelectItem value="ESCALATED">Escalated</SelectItem>
             </SelectContent>
           </Select>
 
