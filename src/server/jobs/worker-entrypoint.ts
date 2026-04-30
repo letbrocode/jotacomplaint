@@ -1,3 +1,6 @@
+// MUST be first — loads .env before any module-level code runs
+import "dotenv/config";
+
 // ============================================
 // Worker Entrypoint — runs as a standalone process
 // separate from the Next.js app.

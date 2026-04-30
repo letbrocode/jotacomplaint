@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import { render } from "@react-email/components";
-import { resend, EMAIL_FROM } from "./client";
+import { getResend, EMAIL_FROM } from "./client";
 
 // ============================================
 // Centralised email sender
@@ -21,7 +21,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
   try {
     const html = await render(options.react);
 
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResend().emails.send({
       from: EMAIL_FROM,
       to: Array.isArray(options.to) ? options.to : [options.to],
       subject: options.subject,
