@@ -7,6 +7,15 @@ import {
   type Status,
   type Priority,
 } from "@prisma/client";
+import { apiLimiter, getIpFromRequest } from "~/lib/rate-limit";
+import { invalidateCache, CacheKeys } from "~/lib/cache";
+import {
+  triggerComplaintUpdate,
+  triggerUserNotification,
+  triggerDashboardRefresh,
+} from "~/lib/pusher";
+import { emailQueue } from "~/server/jobs/queues";
+import { getUnreadCount } from "~/server/services/notification.service";
 
 type UpdateComplaintBody = {
   status?: Status;
@@ -36,6 +45,13 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  // ── Rate limit ─────────────────────────────────────────────
+  const ip = getIpFromRequest(req);
+  const { success } = await apiLimiter.limit(ip);
+  if (!success) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   const session = await auth();
 
   if (!session || !["ADMIN", "STAFF"].includes(session.user.role)) {
@@ -71,7 +87,13 @@ export async function PATCH(
       activities.push({
         complaintId: id,
         userId: session.user.id,
-        action: ActivityAction.STATUS_CHANGED,
+        action: status === "RESOLVED"
+          ? ActivityAction.RESOLVED
+          : status === "REJECTED"
+          ? ActivityAction.REJECTED
+          : status === "ESCALATED"
+          ? ActivityAction.ESCALATED
+          : ActivityAction.STATUS_CHANGED,
         oldValue: existing.status,
         newValue: status,
         comment: `Status changed from ${existing.status} to ${status}`,
@@ -82,7 +104,14 @@ export async function PATCH(
         complaintId: id,
         title: "Status Updated",
         message: `Your complaint status changed to ${status}`,
-        type: NotificationType.STATUS_UPDATED,
+        type:
+          status === "RESOLVED"
+            ? NotificationType.RESOLVED
+            : status === "REJECTED"
+            ? NotificationType.REJECTED
+            : status === "ESCALATED"
+            ? NotificationType.ESCALATED
+            : NotificationType.STATUS_UPDATED,
       });
     }
 
@@ -156,6 +185,8 @@ export async function PATCH(
             !existing.resolvedAt && {
               resolvedAt: new Date(),
             }),
+          ...(status === "REJECTED" && { rejectedAt: new Date() }),
+          ...(status === "ESCALATED" && { escalatedAt: new Date() }),
         },
         include: {
           user: { select: { id: true, name: true, email: true } },
@@ -177,6 +208,59 @@ export async function PATCH(
 
       return complaint;
     });
+
+    // ── Queue email (non-blocking) ────────────────────────────
+    if (status && status !== existing.status) {
+      if (status === "RESOLVED") {
+        void emailQueue.add("complaint-resolved", {
+          type: "complaint-resolved",
+          complaintId: id,
+          userId: existing.userId,
+        });
+      } else if (status === "REJECTED") {
+        void emailQueue.add("complaint-rejected", {
+          type: "complaint-rejected",
+          complaintId: id,
+          userId: existing.userId,
+          rejectionNote: "Please resubmit with more details if needed.",
+        });
+      } else {
+        void emailQueue.add("status-updated", {
+          type: "status-updated",
+          complaintId: id,
+          userId: existing.userId,
+          newStatus: status,
+        });
+      }
+    }
+    if (assignedToId && assignedToId !== existing.assignedToId) {
+      void emailQueue.add("complaint-assigned", {
+        type: "complaint-assigned",
+        complaintId: id,
+        assignedToId,
+      });
+    }
+
+    // ── Pusher real-time (non-blocking) ───────────────────────
+    void triggerComplaintUpdate(id, {
+      id,
+      status: updated.status,
+      assignedToId: updated.assignedToId,
+      updatedAt: updated.updatedAt.toISOString(),
+    }).catch(() => null);
+
+    void getUnreadCount(existing.userId).then((unreadCount) =>
+      triggerUserNotification(existing.userId, {
+        title: "Complaint Updated",
+        message: `Your complaint status changed to ${updated.status}`,
+        unreadCount,
+      }).catch(() => null),
+    );
+
+    void triggerDashboardRefresh().catch(() => null);
+
+    // ── Cache invalidation (Upstash write) ────────────────────
+    void invalidateCache(CacheKeys.dashboardStats, CacheKeys.departmentBreakdown).catch(() => null);
 
     return NextResponse.json(updated);
   } catch (err) {
