@@ -26,6 +26,14 @@ function generateNearbyCoord(
   };
 }
 
+// SLA hours by priority — mirrors DEFAULT_SLA_HOURS in lib/complaint.ts
+const SLA_HOURS: Record<string, number> = { HIGH: 4, MEDIUM: 24, LOW: 72 };
+
+function getDueDate(createdAt: Date, priority: string): Date {
+  const hrs = SLA_HOURS[priority] ?? 24;
+  return new Date(createdAt.getTime() + hrs * 60 * 60 * 1000);
+}
+
 async function main() {
   console.log("🌱 Seeding database...");
 
@@ -34,6 +42,7 @@ async function main() {
   await prisma.complaintActivity.deleteMany();
   await prisma.comment.deleteMany();
   await prisma.complaint.deleteMany();
+  await prisma.sLAPolicy.deleteMany();
   await prisma.department.deleteMany();
   await prisma.user.deleteMany();
   await prisma.publicLocation.deleteMany();
@@ -83,6 +92,34 @@ async function main() {
   console.log(`✅ Created ${allDepartments.length} departments`);
 
   // ============================================
+  // SLA POLICIES
+  // ============================================
+  const categories = ["WATER", "ELECTRICITY", "SANITATION", "ROADS", "OTHER"] as const;
+  const priorities = ["HIGH", "MEDIUM", "LOW"] as const;
+  const slaMatrix: Record<string, Record<string, { res: number; esc: number }>> = {
+    WATER:       { HIGH: { res: 4,   esc: 2  }, MEDIUM: { res: 24,  esc: 12 }, LOW: { res: 72,  esc: 48 } },
+    ELECTRICITY: { HIGH: { res: 2,   esc: 1  }, MEDIUM: { res: 12,  esc: 8  }, LOW: { res: 48,  esc: 36 } },
+    SANITATION:  { HIGH: { res: 8,   esc: 4  }, MEDIUM: { res: 24,  esc: 16 }, LOW: { res: 96,  esc: 72 } },
+    ROADS:       { HIGH: { res: 24,  esc: 12 }, MEDIUM: { res: 72,  esc: 48 }, LOW: { res: 168, esc: 120} },
+    OTHER:       { HIGH: { res: 48,  esc: 24 }, MEDIUM: { res: 72,  esc: 48 }, LOW: { res: 168, esc: 120} },
+  };
+
+  for (const cat of categories) {
+    for (const pri of priorities) {
+      await prisma.sLAPolicy.create({
+        data: {
+          category: cat,
+          priority: pri,
+          resolutionHrs: slaMatrix[cat]![pri]!.res,
+          escalationHrs: slaMatrix[cat]![pri]!.esc,
+          isActive: true,
+        },
+      });
+    }
+  }
+  console.log(`✅ Created ${categories.length * priorities.length} SLA policies`);
+
+  // ============================================
   // ADMIN USER
   // ============================================
   const adminPassword = await bcrypt.hash("12345678", 10);
@@ -92,6 +129,8 @@ async function main() {
       email: "admin@municipality.gov",
       password: adminPassword,
       role: Role.ADMIN,
+      phone: "+91-9800000000",
+      bio: "Municipal administration head responsible for complaint oversight.",
     },
   });
   console.log("✅ Created admin user");
@@ -611,6 +650,52 @@ async function main() {
       latitude: 19.0515,
       longitude: 72.8285,
     },
+    // REJECTED COMPLAINTS
+    {
+      title: "Noise complaint about construction",
+      details: "Construction work happening 24/7 with loud machinery. Violating noise regulations.",
+      category: ComplaintCategory.OTHER,
+      location: "Santacruz West, Near Airport",
+      priority: Priority.LOW,
+      status: Status.REJECTED,
+      departmentName: "Public Works",
+      latitude: 19.0839,
+      longitude: 72.8395,
+    },
+    {
+      title: "Request for new bus stop",
+      details: "We need a new bus stop at this location as residents walk 2km to the nearest stop.",
+      category: ComplaintCategory.ROADS,
+      location: "Mulund West, Near Lake Road",
+      priority: Priority.LOW,
+      status: Status.REJECTED,
+      departmentName: "Roads Department",
+      latitude: 19.1742,
+      longitude: 72.9543,
+    },
+    // ESCALATED COMPLAINTS
+    {
+      title: "Raw sewage overflow on residential street",
+      details: "Sewage has been overflowing onto the street for 5 days. Health hazard. No response from department.",
+      category: ComplaintCategory.SANITATION,
+      location: "Dharavi, 90 Feet Road",
+      priority: Priority.HIGH,
+      status: Status.ESCALATED,
+      departmentName: "Sanitation Department",
+      latitude: 19.0411,
+      longitude: 72.8545,
+    },
+    {
+      title: "Complete power failure for 48 hours",
+      details: "Entire sector has had no electricity for 2 days. Medical equipment users are at risk.",
+      category: ComplaintCategory.ELECTRICITY,
+      location: "Ghatkopar East, Asalfa Village",
+      priority: Priority.HIGH,
+      status: Status.ESCALATED,
+      departmentName: "Electricity Department",
+      latitude: 19.0869,
+      longitude: 72.9092,
+    },
   ];
 
   // ============================================
@@ -657,10 +742,19 @@ async function main() {
         assignedToId,
         createdAt,
         updatedAt: createdAt,
+        dueDate: getDueDate(createdAt, template.priority),
         resolvedAt:
           template.status === Status.RESOLVED
             ? addRandomTime(createdAt, 168)
             : null,
+        rejectedAt:
+          template.status === Status.REJECTED ? addRandomTime(createdAt, 48) : null,
+        rejectionNote:
+          template.status === Status.REJECTED
+            ? "Complaint falls outside municipal jurisdiction or does not meet submission criteria."
+            : null,
+        escalatedAt:
+          template.status === Status.ESCALATED ? addRandomTime(createdAt, 72) : null,
 
         // Nested create: Activity log for creation
         activities: {
@@ -782,10 +876,10 @@ async function main() {
         data: {
           complaintId: complaint.id,
           userId: assignedToId,
-          action: ActivityAction.STATUS_CHANGED,
+          action: ActivityAction.RESOLVED,
           oldValue: Status.IN_PROGRESS,
           newValue: Status.RESOLVED,
-          comment: "Issue has been resolved",
+          comment: "Issue has been fully resolved",
           createdAt: resolveAt,
         },
       });
@@ -836,6 +930,62 @@ async function main() {
       });
       commentCount++;
     }
+
+    // Handle REJECTED complaints
+    if (template.status === Status.REJECTED) {
+      const rejectedAt = addRandomTime(createdAt, 48);
+      await prisma.complaintActivity.create({
+        data: {
+          complaintId: complaint.id,
+          userId: admin.id,
+          action: ActivityAction.REJECTED,
+          oldValue: Status.PENDING,
+          newValue: Status.REJECTED,
+          comment: "Complaint falls outside municipal jurisdiction.",
+          createdAt: rejectedAt,
+        },
+      });
+      activityCount++;
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          complaintId: complaint.id,
+          title: "Complaint Rejected",
+          message: `Your complaint "${template.title}" could not be processed.`,
+          type: NotificationType.REJECTED,
+          createdAt: rejectedAt,
+        },
+      });
+      notificationCount++;
+    }
+
+    // Handle ESCALATED complaints
+    if (template.status === Status.ESCALATED) {
+      const escalatedAt = addRandomTime(createdAt, 72);
+      await prisma.complaintActivity.create({
+        data: {
+          complaintId: complaint.id,
+          userId: admin.id,
+          action: ActivityAction.ESCALATED,
+          oldValue: Status.IN_PROGRESS,
+          newValue: Status.ESCALATED,
+          comment: "SLA deadline breached. Escalated to senior management.",
+          createdAt: escalatedAt,
+        },
+      });
+      activityCount++;
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          complaintId: complaint.id,
+          title: "Complaint Escalated",
+          message: `Your complaint "${template.title}" has been escalated due to delays.`,
+          type: NotificationType.ESCALATED,
+          createdAt: escalatedAt,
+        },
+      });
+      notificationCount++;
+    }
   }
 
   console.log(
@@ -859,10 +1009,12 @@ async function main() {
   console.log("=".repeat(50));
   console.log("\n📊 Seed Summary:");
   console.log(`   - ${allDepartments.length} departments`);
+  console.log(`   - ${categories.length * priorities.length} SLA policies`);
   console.log(`   - 1 admin user`);
   console.log(`   - ${totalStaff} staff members`);
   console.log(`   - ${regularUsers.length} regular users`);
-  console.log(`   - ${totalComplaints} total complaints (all with GPS coords)`);
+  console.log(`   - ${totalComplaints} total complaints (all with GPS coords + due dates)`);
+  console.log(`     (includes PENDING, IN_PROGRESS, RESOLVED, REJECTED, ESCALATED)`);
   console.log(`   - ${publicLocations.length} public locations`);
   console.log(`   - ${totalActivities} activity logs`);
   console.log(`   - ${totalComments} comments`);
@@ -875,6 +1027,7 @@ async function main() {
   console.log("   - All complaints have realistic Mumbai coordinates");
   console.log("   - 15 public garbage collection locations");
   console.log("   - Complaints spread across Mumbai areas");
+  console.log("   - All complaints include SLA due dates");
   console.log("=".repeat(50) + "\n");
 }
 

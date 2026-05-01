@@ -1,330 +1,264 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-// ============================================
-// AUTH MODELS (Next-Auth)
-// ============================================
-
 model Account {
-    id                       String  @id @default(cuid())
-    userId                   String
-    type                     String
-    provider                 String
-    providerAccountId        String
-    refresh_token            String?
-    access_token             String?
-    expires_at               Int?
-    token_type               String?
-    scope                    String?
-    id_token                 String?
-    session_state            String?
-    user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-    refresh_token_expires_in Int?
+  id                       String  @id @default(cuid())
+  userId                   String
+  type                     String
+  provider                 String
+  providerAccountId        String
+  refresh_token            String?
+  access_token             String?
+  expires_at               Int?
+  token_type               String?
+  scope                    String?
+  id_token                 String?
+  session_state            String?
+  refresh_token_expires_in Int?
+  user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@unique([provider, providerAccountId])
+  @@unique([provider, providerAccountId])
 }
 
 model Session {
-    id           String   @id @default(cuid())
-    sessionToken String   @unique
-    userId       String
-    expires      DateTime
-    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {
-    identifier String
-    token      String   @unique
-    expires    DateTime
+  identifier String
+  token      String   @unique
+  expires    DateTime
 
-    @@unique([identifier, token])
+  @@unique([identifier, token])
 }
-
-// ============================================
-// USER MODEL
-// ============================================
 
 model User {
-    id                  String             @id @default(cuid())
-    name                String?
-    email               String?            @unique
-    password            String?            // Optional — supports future OAuth providers
-    role                Role               @default(USER)
-    isActive            Boolean            @default(true)
-    phone               String?
-    avatar              String?
-    bio                 String?
-    createdAt           DateTime           @default(now())
-    updatedAt           DateTime           @updatedAt
+  id                  String              @id @default(cuid())
+  name                String?
+  email               String?             @unique
+  password            String?
+  role                Role                @default(USER)
+  isActive            Boolean             @default(true)
+  phone               String?
+  avatar              String?
+  bio                 String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  emailOnCreated      Boolean             @default(true)
+  emailOnAssigned     Boolean             @default(true)
+  emailOnStatusUpdate Boolean             @default(true)
+  emailOnResolved     Boolean             @default(true)
+  accounts            Account[]
+  comments            Comment[]
+  assignedComplaints  Complaint[]         @relation("AssignedComplaints")
+  complaints          Complaint[]
+  activities          ComplaintActivity[]
+  notifications       Notification[]
+  sessions            Session[]
+  departments         Department[]        @relation("DepartmentStaff")
 
-    // Notification preferences
-    emailOnCreated      Boolean            @default(true)
-    emailOnAssigned     Boolean            @default(true)
-    emailOnStatusUpdate Boolean            @default(true)
-    emailOnResolved     Boolean            @default(true)
-
-    // Relations
-    accounts            Account[]
-    sessions            Session[]
-    complaints          Complaint[]
-    assignedComplaints  Complaint[]        @relation("AssignedComplaints")
-    departments         Department[]       @relation("DepartmentStaff")
-    comments            Comment[]
-    activities          ComplaintActivity[]
-    notifications       Notification[]
-
-    @@index([role])
-    @@index([email])
+  @@index([role])
+  @@index([email])
 }
-
-// ============================================
-// DEPARTMENT MODEL
-// ============================================
 
 model Department {
-    id          Int         @id @default(autoincrement())
-    name        String      @unique
-    description String?
-    email       String?
-    phone       String?
-    isActive    Boolean     @default(true)
-    createdAt   DateTime    @default(now())
-    updatedAt   DateTime    @updatedAt
-
-    // Relations
-    complaints  Complaint[]
-    staff       User[]      @relation("DepartmentStaff")
-    slaPolicies SLAPolicy[]
+  id          Int         @id @default(autoincrement())
+  name        String      @unique
+  description String?
+  email       String?
+  phone       String?
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  complaints  Complaint[]
+  slaPolicies SLAPolicy[]
+  staff       User[]      @relation("DepartmentStaff")
 }
-
-// ============================================
-// COMPLAINT MODEL
-// ============================================
 
 model Complaint {
-    id            String            @id @default(cuid())
-    title         String
-    details       String
-    category      ComplaintCategory @default(SANITATION)
-    location      String?
-    latitude      Float?
-    longitude     Float?
-    photoUrl      String?
-    priority      Priority          @default(MEDIUM)
-    status        Status            @default(PENDING)
-    createdAt     DateTime          @default(now())
-    updatedAt     DateTime          @updatedAt
-    resolvedAt    DateTime?
-    deletedAt     DateTime?         // Soft delete
+  id            String              @id @default(cuid())
+  title         String
+  details       String
+  category      ComplaintCategory   @default(SANITATION)
+  location      String?
+  latitude      Float?
+  longitude     Float?
+  photoUrl      String?
+  priority      Priority            @default(MEDIUM)
+  status        Status              @default(PENDING)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  resolvedAt    DateTime?
+  deletedAt     DateTime?
+  rejectedAt    DateTime?
+  rejectionNote String?
+  dueDate       DateTime?
+  escalatedAt   DateTime?
+  parentId      String?
+  isDuplicate   Boolean             @default(false)
+  userId        String
+  assignedToId  String?
+  departmentId  Int?
+  comments      Comment[]
+  assignedTo    User?               @relation("AssignedComplaints", fields: [assignedToId], references: [id])
+  department    Department?         @relation(fields: [departmentId], references: [id])
+  parent        Complaint?          @relation("DuplicateComplaints", fields: [parentId], references: [id])
+  duplicates    Complaint[]         @relation("DuplicateComplaints")
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activities    ComplaintActivity[]
+  notifications Notification[]
 
-    // Rejection
-    rejectedAt    DateTime?
-    rejectionNote String?
-
-    // SLA tracking
-    dueDate       DateTime?
-    escalatedAt   DateTime?
-
-    // Duplicate detection
-    parentId      String?
-    isDuplicate   Boolean           @default(false)
-    parent        Complaint?        @relation("DuplicateComplaints", fields: [parentId], references: [id], onDelete: SetNull)
-    duplicates    Complaint[]       @relation("DuplicateComplaints")
-
-    // Foreign Keys
-    userId        String
-    assignedToId  String?
-    departmentId  Int?
-
-    // Relations
-    user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-    assignedTo    User?             @relation("AssignedComplaints", fields: [assignedToId], references: [id], onDelete: SetNull)
-    department    Department?       @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-    comments      Comment[]
-    activities    ComplaintActivity[]
-    notifications Notification[]
-
-    @@index([status])
-    @@index([userId])
-    @@index([departmentId])
-    @@index([assignedToId])
-    @@index([createdAt])
-    @@index([deletedAt])
-    @@index([isDuplicate])
-    @@index([dueDate])
+  @@index([status])
+  @@index([userId])
+  @@index([departmentId])
+  @@index([assignedToId])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@index([isDuplicate])
+  @@index([dueDate])
 }
-
-// ============================================
-// COMMENT MODEL
-// ============================================
 
 model Comment {
-    id          String    @id @default(cuid())
-    content     String
-    isInternal  Boolean   @default(false)
-    createdAt   DateTime  @default(now())
-    updatedAt   DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  content     String
+  isInternal  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  complaintId String
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
 
-    complaintId String
-    authorId    String
-
-    complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
-    author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
-
-    @@index([complaintId])
-    @@index([authorId])
+  @@index([complaintId])
+  @@index([authorId])
 }
-
-// ============================================
-// COMPLAINT ACTIVITY LOG
-// ============================================
 
 model ComplaintActivity {
-    id          String         @id @default(cuid())
-    action      ActivityAction
-    oldValue    String?
-    newValue    String?
-    comment     String?
-    createdAt   DateTime       @default(now())
+  id          String         @id @default(cuid())
+  action      ActivityAction
+  oldValue    String?
+  newValue    String?
+  comment     String?
+  createdAt   DateTime       @default(now())
+  complaintId String
+  userId      String
+  complaint   Complaint      @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    complaintId String
-    userId      String
-
-    complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
-    user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-    @@index([complaintId])
-    @@index([createdAt])
+  @@index([complaintId])
+  @@index([createdAt])
 }
-
-// ============================================
-// NOTIFICATION MODEL
-// ============================================
 
 model Notification {
-    id          String           @id @default(cuid())
-    title       String
-    message     String
-    type        NotificationType
-    isRead      Boolean          @default(false)
-    createdAt   DateTime         @default(now())
+  id          String           @id @default(cuid())
+  title       String
+  message     String
+  type        NotificationType
+  isRead      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  userId      String
+  complaintId String?
+  complaint   Complaint?       @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    userId      String
-    complaintId String?
-
-    user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-    complaint   Complaint? @relation(fields: [complaintId], references: [id], onDelete: Cascade)
-
-    @@index([userId, isRead])
-    @@index([createdAt])
+  @@index([userId, isRead])
+  @@index([createdAt])
 }
-
-// ============================================
-// SLA POLICY MODEL
-// ============================================
 
 model SLAPolicy {
-    id            Int               @id @default(autoincrement())
-    category      ComplaintCategory
-    priority      Priority
-    resolutionHrs Int               // Target hours to resolve
-    escalationHrs Int               // Hours until auto-escalation
-    isActive      Boolean           @default(true)
-    createdAt     DateTime          @default(now())
-    updatedAt     DateTime          @updatedAt
+  id            Int               @id @default(autoincrement())
+  category      ComplaintCategory
+  priority      Priority
+  resolutionHrs Int
+  escalationHrs Int
+  isActive      Boolean           @default(true)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  departmentId  Int?
+  department    Department?       @relation(fields: [departmentId], references: [id])
 
-    departmentId  Int?
-    department    Department?       @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-
-    @@unique([category, priority, departmentId])
-    @@index([category, priority])
+  @@unique([category, priority, departmentId])
+  @@index([category, priority])
 }
-
-// ============================================
-// PUBLIC LOCATIONS
-// ============================================
 
 model PublicLocation {
-    id          String       @id @default(cuid())
-    name        String
-    type        LocationType
-    latitude    Float
-    longitude   Float
-    description String?
-    isActive    Boolean      @default(true)
-    createdAt   DateTime     @default(now())
+  id          String       @id @default(cuid())
+  name        String
+  type        LocationType
+  latitude    Float
+  longitude   Float
+  description String?
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
 
-    @@index([type])
-    @@index([isActive])
+  @@index([type])
+  @@index([isActive])
 }
 
-// ============================================
-// ENUMS
-// ============================================
-
 enum LocationType {
-    GARBAGE_BIN
-    DUMP_SITE
-    COLLECTION_POINT
+  GARBAGE_BIN
+  DUMP_SITE
+  COLLECTION_POINT
 }
 
 enum Status {
-    PENDING
-    IN_PROGRESS
-    RESOLVED
-    REJECTED
-    ESCALATED
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+  REJECTED
+  ESCALATED
 }
 
 enum Role {
-    USER
-    ADMIN
-    STAFF
+  USER
+  ADMIN
+  STAFF
 }
 
 enum ComplaintCategory {
-    ROADS
-    WATER
-    ELECTRICITY
-    SANITATION
-    OTHER
+  ROADS
+  WATER
+  ELECTRICITY
+  SANITATION
+  OTHER
 }
 
 enum Priority {
-    LOW
-    MEDIUM
-    HIGH
+  LOW
+  MEDIUM
+  HIGH
 }
 
 enum ActivityAction {
-    NEW_COMPLAINT
-    STATUS_CHANGED
-    ASSIGNED
-    REASSIGNED
-    COMMENT_ADDED
-    PRIORITY_CHANGED
-    DEPARTMENT_CHANGED
-    REJECTED
-    ESCALATED
-    RESOLVED
-    MARKED_DUPLICATE
+  NEW_COMPLAINT
+  STATUS_CHANGED
+  ASSIGNED
+  REASSIGNED
+  COMMENT_ADDED
+  PRIORITY_CHANGED
+  DEPARTMENT_CHANGED
+  REJECTED
+  ESCALATED
+  RESOLVED
+  MARKED_DUPLICATE
 }
 
 enum NotificationType {
-    COMPLAINT_CREATED
-    COMPLAINT_ASSIGNED
-    STATUS_UPDATED
-    COMMENT_ADDED
-    RESOLVED
-    REJECTED
-    ESCALATED
+  COMPLAINT_CREATED
+  COMPLAINT_ASSIGNED
+  STATUS_UPDATED
+  COMMENT_ADDED
+  RESOLVED
+  REJECTED
+  ESCALATED
 }

@@ -10,6 +10,14 @@ import {
   deleteComplaint,
   findSimilarComplaints,
 } from "~/server/services/complaint.service";
+import { emailQueue } from "~/server/jobs/queues";
+import {
+  triggerComplaintUpdate,
+  triggerDashboardRefresh,
+  triggerUserNotification,
+} from "~/lib/pusher";
+import { getUnreadCount } from "~/server/services/notification.service";
+import { invalidateCache, CacheKeys } from "~/lib/cache";
 
 // ============================================
 // Complaint Server Actions
@@ -20,6 +28,18 @@ export async function createComplaintAction(raw: unknown) {
     const session = await requireAuth();
     const data = createComplaintSchema.parse(raw);
     const complaint = await createComplaint(data, session.user.id);
+
+    // Queue confirmation email
+    await emailQueue.add("complaint-created", {
+      type: "complaint-created",
+      complaintId: complaint.id,
+      userId: session.user.id,
+    });
+
+    // Invalidate dashboard cache + trigger real-time refresh
+    await invalidateCache(CacheKeys.dashboardStats, CacheKeys.departmentBreakdown);
+    await triggerDashboardRefresh().catch(() => null);
+
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/complaints");
     return actionOk(complaint);
@@ -33,6 +53,58 @@ export async function updateComplaintAction(id: string, raw: unknown) {
     const session = await requireRole("ADMIN", "STAFF");
     const data = updateComplaintSchema.parse(raw);
     const complaint = await updateComplaint(id, data, session.user.id);
+
+    // Queue appropriate email
+    if (data.status === "RESOLVED") {
+      await emailQueue.add("complaint-resolved", {
+        type: "complaint-resolved",
+        complaintId: id,
+        userId: complaint.userId,
+      });
+    } else if (data.status === "REJECTED" && data.rejectionNote) {
+      await emailQueue.add("complaint-rejected", {
+        type: "complaint-rejected",
+        complaintId: id,
+        userId: complaint.userId,
+        rejectionNote: data.rejectionNote,
+      });
+    } else if (data.status) {
+      await emailQueue.add("status-updated", {
+        type: "status-updated",
+        complaintId: id,
+        userId: complaint.userId,
+        newStatus: data.status,
+      });
+    }
+
+    if (data.assignedToId) {
+      await emailQueue.add("complaint-assigned", {
+        type: "complaint-assigned",
+        complaintId: id,
+        assignedToId: data.assignedToId,
+      });
+    }
+
+    // Push real-time update to complaint channel
+    await triggerComplaintUpdate(id, {
+      id,
+      status: complaint.status,
+      assignedToId: complaint.assignedToId,
+      updatedAt: complaint.updatedAt.toISOString(),
+    }).catch(() => null);
+
+    // Notify the complaint owner in real-time
+    const unreadCount = await getUnreadCount(complaint.userId);
+    await triggerUserNotification(complaint.userId, {
+      title: "Complaint Updated",
+      message: `Your complaint status changed to ${complaint.status}`,
+      unreadCount,
+    }).catch(() => null);
+
+    // Refresh admin dashboard
+    await invalidateCache(CacheKeys.dashboardStats);
+    await triggerDashboardRefresh().catch(() => null);
+
     revalidatePath("/admin/complaints");
     revalidatePath(`/admin/complaints/${id}`);
     revalidatePath("/staff/complaints");
@@ -47,6 +119,8 @@ export async function deleteComplaintAction(id: string) {
   try {
     await requireRole("ADMIN");
     await deleteComplaint(id);
+    await invalidateCache(CacheKeys.dashboardStats, CacheKeys.departmentBreakdown);
+    await triggerDashboardRefresh().catch(() => null);
     revalidatePath("/admin/complaints");
     return actionOk(undefined);
   } catch (err) {
