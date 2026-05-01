@@ -7,6 +7,9 @@ import {
   type ComplaintCategory as Category,
   Status,
 } from "@prisma/client";
+import { complaintLimiter, getIpFromRequest } from "~/lib/rate-limit";
+import { invalidateCache, CacheKeys } from "~/lib/cache";
+import { emailQueue } from "~/server/jobs/queues";
 
 type CreateComplaintBody = {
   title: string;
@@ -95,6 +98,16 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  // Rate limit: 10 complaint submissions per minute per IP
+  const ip = getIpFromRequest(req);
+  const { success } = await complaintLimiter.limit(ip);
+  if (!success) {
+    return NextResponse.json(
+      { error: "Too many submissions. Please wait a minute." },
+      { status: 429 },
+    );
+  }
+
   try {
     const session = await auth();
 
@@ -180,7 +193,18 @@ export async function POST(req: Request) {
       return newComplaint;
     });
 
+    // Queue confirmation email + invalidate stats cache (non-blocking)
+    void emailQueue.add("complaint-created", {
+      type: "complaint-created",
+      complaintId: complaint.id,
+      userId: session.user.id,
+    }).catch(() => null);
+
+    void invalidateCache(CacheKeys.dashboardStats).catch(() => null);
+
     return NextResponse.json(complaint, { status: 201 });
+
+
   } catch (err: unknown) {
     console.error("Error creating complaint:", err);
 

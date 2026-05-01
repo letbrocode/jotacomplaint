@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
@@ -26,7 +27,7 @@ import {
   FormMessage,
 } from "~/components/ui/form";
 import { toast } from "sonner";
-import { Loader2, MapPin, Camera, ArrowLeft, CheckCircle } from "lucide-react";
+import { Loader2, MapPin, Camera, ArrowLeft, CheckCircle, AlertTriangle, X, ExternalLink } from "lucide-react";
 import Dropzone from "~/components/dropzone";
 import Link from "next/link";
 
@@ -59,11 +60,24 @@ const complaintSchema = z.object({
 
 type ComplaintFormValues = z.infer<typeof complaintSchema>;
 
+type SimilarComplaint = {
+  id: string;
+  title: string;
+  status: string;
+  category: string;
+  location: string | null;
+  createdAt: string;
+  titleSimilarity: number;
+  distanceKm: number | null;
+};
+
 export default function RegisterComplaint() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [photoUrl, setPhotoUrl] = useState("");
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [similarComplaints, setSimilarComplaints] = useState<SimilarComplaint[]>([]);
+  const [showSimilar, setShowSimilar] = useState(true);
 
   const form = useForm<ComplaintFormValues>({
     resolver: zodResolver(complaintSchema),
@@ -108,6 +122,23 @@ export default function RegisterComplaint() {
       },
     );
   };
+  // Debounced duplicate check — fires 600ms after user stops typing
+  const checkSimilar = useCallback(
+    async (title: string, lat?: string, lng?: string) => {
+      if (title.length < 5) { setSimilarComplaints([]); return; }
+      try {
+        const params = new URLSearchParams({ title });
+        if (lat) params.set("lat", lat);
+        if (lng) params.set("lng", lng);
+        const res = await fetch(`/api/complaints/similar?${params.toString()}`);
+        const data = (await res.json()) as { similar: SimilarComplaint[] };
+        setSimilarComplaints(data.similar ?? []);
+        setShowSimilar(true);
+      } catch { /* silent */ }
+    },
+    [],
+  );
+
   const onSubmit = async (data: ComplaintFormValues) => {
     setIsSubmitting(true);
 
@@ -202,6 +233,19 @@ export default function RegisterComplaint() {
                         placeholder="e.g., Broken street light on Main Street"
                         {...field}
                         disabled={isSubmitting}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          // Debounce: schedule after 600ms
+                          const val = e.target.value;
+                          const timeout = setTimeout(() => {
+                            void checkSimilar(
+                              val,
+                              form.getValues("latitude"),
+                              form.getValues("longitude"),
+                            );
+                          }, 600);
+                          return () => clearTimeout(timeout);
+                        }}
                       />
                     </FormControl>
                     <FormDescription>
@@ -211,6 +255,53 @@ export default function RegisterComplaint() {
                   </FormItem>
                 )}
               />
+
+              {/* Similar complaints panel */}
+              {showSimilar && similarComplaints.length > 0 && (
+                <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 dark:border-orange-900/40 dark:bg-orange-950/20">
+                  <div className="mb-3 flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 shrink-0 text-orange-600" />
+                      <p className="text-sm font-semibold text-orange-800 dark:text-orange-300">
+                        Similar complaints already exist
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowSimilar(false)}
+                      className="text-orange-600 hover:text-orange-800"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <p className="mb-3 text-xs text-orange-700 dark:text-orange-400">
+                    Check these before submitting — you may be able to track an existing complaint instead.
+                  </p>
+                  <ul className="space-y-2">
+                    {similarComplaints.map((c) => (
+                      <li key={c.id} className="flex items-start justify-between rounded-md bg-white/60 p-2 dark:bg-white/5">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{c.title}</p>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-orange-700/70 dark:text-orange-400/70">
+                            <Badge variant="outline" className="h-4 px-1 text-[10px]">{c.status.replace("_", " ")}</Badge>
+                            <span>{c.category}</span>
+                            {c.location && <span>· {c.location}</span>}
+                            {c.distanceKm != null && <span>· {c.distanceKm} km away</span>}
+                            <span>· {Math.round(c.titleSimilarity * 100)}% match</span>
+                          </div>
+                        </div>
+                        <Link
+                          href={`/dashboard/complaints/${c.id}`}
+                          target="_blank"
+                          className="ml-2 shrink-0 text-orange-600 hover:text-orange-800"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {/* Details */}
               <FormField

@@ -22,7 +22,8 @@ import {
 } from "~/components/ui/select";
 import { toast } from "sonner";
 import type { $Enums, User as PrismaUser } from "@prisma/client";
-import type { ComplaintWithRelations } from "~/types/complaint"; // Import from shared file
+import type { ComplaintWithRelations } from "~/types/complaint";
+import { SlaCountdown } from "~/components/sla-countdown";
 
 interface ComplaintCardProps {
   complaint: ComplaintWithRelations;
@@ -143,10 +144,12 @@ export default function ComplaintCard({
     ESCALATED: "bg-orange-500/15 text-orange-600 border-orange-500/20",
   }[status];
 
+  // Overdue = past dueDate and not closed
   const isOverdue =
+    !!complaint.dueDate &&
     status !== "RESOLVED" &&
-    new Date(complaint.createdAt).getTime() <
-      Date.now() - 7 * 24 * 60 * 60 * 1000;
+    status !== "REJECTED" &&
+    new Date(complaint.dueDate).getTime() < Date.now();
 
   return (
     <Card className="relative overflow-hidden transition-all hover:shadow-md">
@@ -215,6 +218,10 @@ export default function ComplaintCard({
                   {complaint._count.activities} activities
                 </span>
               )}
+              <SlaCountdown
+                dueDate={complaint.dueDate}
+                status={status}
+              />
             </div>
 
             {/* Assigned To Display */}

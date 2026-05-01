@@ -1,13 +1,19 @@
 import { db } from "~/server/db";
 import { subDays, startOfDay } from "date-fns";
+import { getCached, CacheKeys } from "~/lib/cache";
 
 // ============================================
-// Analytics Service — all queries server-side,
-// cached at the call-site with Next.js fetch cache
-// or Redis (Phase B).
+// Analytics Service — expensive queries cached
+// in Upstash Redis (5-min TTL).
+// Cache is invalidated by invalidateCache() in
+// the PATCH /api/complaints/[id] route handler.
 // ============================================
 
 export async function getDashboardStats() {
+  return getCached(CacheKeys.dashboardStats, _getDashboardStats, 300);
+}
+
+async function _getDashboardStats() {
   const [total, pending, inProgress, resolved, rejected, escalated] =
     await Promise.all([
       db.complaint.count({ where: { deletedAt: null } }),
@@ -72,6 +78,10 @@ export async function getTrendData(days = 30) {
 }
 
 export async function getDepartmentBreakdown() {
+  return getCached(CacheKeys.departmentBreakdown, _getDepartmentBreakdown, 300);
+}
+
+async function _getDepartmentBreakdown() {
   const departments = await db.department.findMany({
     where: { isActive: true },
     include: {
@@ -92,6 +102,7 @@ export async function getDepartmentBreakdown() {
     escalated: dept.complaints.filter((c) => c.status === "ESCALATED").length,
   }));
 }
+
 
 export async function getPublicStats() {
   const [users, resolved] = await Promise.all([
