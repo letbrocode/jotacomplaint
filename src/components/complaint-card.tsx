@@ -24,17 +24,24 @@ import { toast } from "sonner";
 import type { $Enums, User as PrismaUser } from "@prisma/client";
 import type { ComplaintWithRelations } from "~/types/complaint";
 import { SlaCountdown } from "~/components/sla-countdown";
+import { updateComplaintAction } from "~/server/actions/complaint.actions";
 
 interface ComplaintCardProps {
   complaint: ComplaintWithRelations;
   staffList?: PrismaUser[];
   onUpdate?: (updatedComplaint: ComplaintWithRelations) => void;
+  detailHref?: string;
+  canUpdateStatus?: boolean;
+  canAssignStaff?: boolean;
 }
 
 export default function ComplaintCard({
   complaint,
   staffList = [],
   onUpdate,
+  detailHref = `/admin/complaints/${complaint.id}`,
+  canUpdateStatus = false,
+  canAssignStaff = false,
 }: ComplaintCardProps) {
   const [status, setStatus] = useState(complaint.status);
   const [assignedTo, setAssignedTo] = useState(complaint.assignedTo?.id ?? "");
@@ -58,18 +65,13 @@ export default function ComplaintCard({
     }
 
     try {
-      const res = await fetch(`/api/complaints/${complaint.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updateData),
-      });
+      const result = await updateComplaintAction(complaint.id, updateData);
 
-      if (!res.ok) {
-        const error = (await res.json()) as { error?: string };
-        throw new Error(error.error ?? "Update failed");
+      if (!result.success) {
+        throw new Error(result.error);
       }
 
-      const updated = (await res.json()) as ComplaintWithRelations;
+      const updated = result.data as ComplaintWithRelations;
 
       // Update local state
       if (updateData.status !== undefined) setStatus(updated.status);
@@ -232,74 +234,77 @@ export default function ComplaintCard({
               </div>
             )}
 
-            {/* Admin Controls */}
-            <div className="flex flex-col gap-3 border-t pt-3 md:flex-row md:items-center md:gap-6">
-              {/* Status Dropdown */}
-              <div className="flex-1">
-                <label className="text-foreground mb-1 block text-xs font-semibold">
-                  Update Status
-                </label>
-                <Select
-                  value={status}
-                  onValueChange={handleStatusChange}
-                  disabled={updating}
-                >
-                  <SelectTrigger
-                    className="w-full"
-                    aria-label="Update complaint status"
-                  >
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="PENDING">Pending</SelectItem>
-                    <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                    <SelectItem value="RESOLVED">Resolved</SelectItem>
-                    <SelectItem value="REJECTED">Rejected</SelectItem>
-                    <SelectItem value="ESCALATED">Escalated</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            {(canUpdateStatus || canAssignStaff) && (
+              <div className="flex flex-col gap-3 border-t pt-3 md:flex-row md:items-center md:gap-6">
+                {canUpdateStatus && (
+                  <div className="flex-1">
+                    <label className="text-foreground mb-1 block text-xs font-semibold">
+                      Update Status
+                    </label>
+                    <Select
+                      value={status}
+                      onValueChange={handleStatusChange}
+                      disabled={updating}
+                    >
+                      <SelectTrigger
+                        className="w-full"
+                        aria-label="Update complaint status"
+                      >
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PENDING">Pending</SelectItem>
+                        <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                        <SelectItem value="RESOLVED">Resolved</SelectItem>
+                        <SelectItem value="REJECTED">Rejected</SelectItem>
+                        <SelectItem value="ESCALATED">Escalated</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
-              {/* Assign Staff Dropdown */}
-              <div className="flex-1">
-                <label className="text-foreground mb-1 block text-xs font-semibold">
-                  Assign to Staff
-                </label>
-                <Select
-                  value={assignedTo || "unassigned"}
-                  onValueChange={handleAssignChange}
-                  disabled={updating}
-                >
-                  <SelectTrigger
-                    className="w-full"
-                    aria-label="Assign complaint to staff"
-                  >
-                    <SelectValue placeholder="Select staff" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unassigned">
-                      <span className="text-muted-foreground">Unassigned</span>
-                    </SelectItem>
-                    {staffList.length > 0 ? (
-                      staffList.map((staff) => (
-                        <SelectItem key={staff.id} value={staff.id}>
-                          {staff.name ?? staff.email}
+                {canAssignStaff && (
+                  <div className="flex-1">
+                    <label className="text-foreground mb-1 block text-xs font-semibold">
+                      Assign to Staff
+                    </label>
+                    <Select
+                      value={assignedTo || "unassigned"}
+                      onValueChange={handleAssignChange}
+                      disabled={updating}
+                    >
+                      <SelectTrigger
+                        className="w-full"
+                        aria-label="Assign complaint to staff"
+                      >
+                        <SelectValue placeholder="Select staff" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned">
+                          <span className="text-muted-foreground">Unassigned</span>
                         </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="no-staff" disabled>
-                        No staff available
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
+                        {staffList.length > 0 ? (
+                          staffList.map((staff) => (
+                            <SelectItem key={staff.id} value={staff.id}>
+                              {staff.name ?? staff.email}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-staff" disabled>
+                            No staff available
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
-            </div>
+            )}
 
             {/* Action Buttons */}
             <div className="flex gap-2 border-t pt-3">
               <Button variant="outline" size="sm" className="flex-1" asChild>
-                <a href={`/admin/complaints/${complaint.id}`}>View Details</a>
+                <a href={detailHref}>View Details</a>
               </Button>
             </div>
           </CardContent>

@@ -1,246 +1,72 @@
-"use client";
-
-import { useEffect, useState, useMemo, useCallback } from "react";
-import { Skeleton } from "~/components/ui/skeleton";
-import { Input } from "~/components/ui/input";
-import { Button } from "~/components/ui/button";
+import { auth } from "~/server/auth";
+import { redirect } from "next/navigation";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
-import { Badge } from "~/components/ui/badge";
-import { AlertTriangle, RefreshCw, Search, Filter } from "lucide-react";
-import type { Department, Role } from "@prisma/client";
+  getComplaintStatusCountsForRole,
+  getComplaintsForRole,
+} from "~/server/services/complaint.service";
+import { getAllDepartments } from "~/server/services/department.service";
+import { getStaffMembers } from "~/server/services/user.service";
+import { ComplaintsFilters } from "~/components/complaints-filters";
 import ComplaintCard from "~/components/complaint-card";
-import type { ComplaintWithRelations } from "~/types/complaint";
+import { Status, Priority, ComplaintCategory } from "@prisma/client";
+import { Button } from "~/components/ui/button";
+import { RefreshCw } from "lucide-react";
+import Link from "next/link";
+import { Suspense } from "react";
+import { Skeleton } from "~/components/ui/skeleton";
 
-type FilterState = {
-  status: string;
-  priority: string;
-  category: string;
-  departmentId: string;
-  search: string;
-};
+export const dynamic = "force-dynamic";
 
-type StaffMember = {
-  id: string;
-  name: string | null;
-  email: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  isActive: boolean;
-  password: string | null;
-  phone: string | null;
-  avatar: string | null;
-  bio: string | null;
-  role: Role;
-  emailOnCreated: boolean;
-  emailOnAssigned: boolean;
-  emailOnStatusUpdate: boolean;
-  emailOnResolved: boolean;
-  departments?: Department[];
-};
+interface PageProps {
+  searchParams: Promise<{
+    status?: string;
+    priority?: string;
+    category?: string;
+    departmentId?: string;
+    search?: string;
+    page?: string;
+  }>;
+}
 
-export default function AdminComplaintsPage() {
-  const [complaints, setComplaints] = useState<ComplaintWithRelations[]>([]);
-  const [staffList, setStaffList] = useState<StaffMember[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+export default async function AdminComplaintsPage({ searchParams }: PageProps) {
+  const session = await auth();
 
-  // Filter and sort state
-  const [filters, setFilters] = useState<FilterState>({
-    status: "all",
-    priority: "all",
-    category: "all",
-    departmentId: "all",
-    search: "",
-  });
-  const [sortBy, setSortBy] = useState<string>("newest");
+  if (!session?.user || session.user.role !== "ADMIN") {
+    redirect("/unauthorized");
+  }
 
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  const params = await searchParams;
 
-      const [complaintsRes, staffRes, departmentsRes] = await Promise.all([
-        fetch("/api/complaints"),
-        fetch("/api/staff"),
-        fetch("/api/departments"),
-      ]);
-
-      if (!complaintsRes.ok) throw new Error("Failed to fetch complaints");
-      if (!staffRes.ok) throw new Error("Failed to fetch staff");
-      if (!departmentsRes.ok) throw new Error("Failed to fetch departments");
-
-      const complaintsData =
-        (await complaintsRes.json()) as ComplaintWithRelations[];
-      const staffData = (await staffRes.json()) as StaffMember[];
-      const departmentsData = (await departmentsRes.json()) as Department[];
-
-      setComplaints(complaintsData);
-      setStaffList(staffData);
-      setDepartments(departmentsData);
-      setLastUpdated(new Date());
-    } catch (err) {
-      console.error(err);
-      setError(err instanceof Error ? err.message : "Failed to load data");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void fetchData();
-  }, [fetchData]);
-
-  // Memoized filtered and sorted complaints
-  const filteredComplaints = useMemo(() => {
-    let result = [...complaints];
-
-    // Apply filters
-    if (filters.status !== "all") {
-      result = result.filter((c) => c.status === filters.status);
-    }
-    if (filters.priority !== "all") {
-      result = result.filter((c) => c.priority === filters.priority);
-    }
-    if (filters.category !== "all") {
-      result = result.filter((c) => c.category === filters.category);
-    }
-    if (filters.departmentId !== "all") {
-      result = result.filter(
-        (c) => c.departmentId?.toString() === filters.departmentId,
-      );
-    }
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      result = result.filter(
-        (c) =>
-          c.title.toLowerCase().includes(searchLower) ||
-          c.details?.toLowerCase().includes(searchLower) ||
-          c.location?.toLowerCase().includes(searchLower) ||
-          c.user?.name?.toLowerCase().includes(searchLower),
-      );
-    }
-
-    // Apply sorting
-    switch (sortBy) {
-      case "newest":
-        result.sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-        );
-        break;
-      case "oldest":
-        result.sort(
-          (a, b) =>
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-        );
-        break;
-      case "high-priority":
-        result.sort((a, b) => {
-          const priorityOrder = { HIGH: 3, MEDIUM: 2, LOW: 1 };
-          return (
-            priorityOrder[b.priority as keyof typeof priorityOrder] -
-            priorityOrder[a.priority as keyof typeof priorityOrder]
-          );
-        });
-        break;
-      case "low-priority":
-        result.sort((a, b) => {
-          const priorityOrder = { HIGH: 3, MEDIUM: 2, LOW: 1 };
-          return (
-            priorityOrder[a.priority as keyof typeof priorityOrder] -
-            priorityOrder[b.priority as keyof typeof priorityOrder]
-          );
-        });
-        break;
-    }
-
-    return result;
-  }, [complaints, filters, sortBy]);
-
-  // Stats from filtered results
-  const stats = useMemo(
-    () => ({
-      total: filteredComplaints.length,
-      pending: filteredComplaints.filter((c) => c.status === "PENDING").length,
-      inProgress: filteredComplaints.filter((c) => c.status === "IN_PROGRESS")
-        .length,
-      resolved: filteredComplaints.filter((c) => c.status === "RESOLVED")
-        .length,
-    }),
-    [filteredComplaints],
-  );
-
-  // Optimistic update for complaint changes
-  const handleComplaintUpdate = useCallback(
-    (updatedComplaint: ComplaintWithRelations) => {
-      setComplaints((prev) =>
-        prev.map((c) => (c.id === updatedComplaint.id ? updatedComplaint : c)),
-      );
-    },
-    [],
-  );
-
-  const resetFilters = () => {
-    setFilters({
-      status: "all",
-      priority: "all",
-      category: "all",
-      departmentId: "all",
-      search: "",
-    });
-    setSortBy("newest");
+  // Validate and parse filters
+  const filters = {
+    status: Object.values(Status).includes(params.status as Status)
+      ? (params.status as Status)
+      : undefined,
+    priority: Object.values(Priority).includes(params.priority as Priority)
+      ? (params.priority as Priority)
+      : undefined,
+    category: Object.values(ComplaintCategory).includes(
+      params.category as ComplaintCategory,
+    )
+      ? (params.category as ComplaintCategory)
+      : undefined,
+    departmentId: params.departmentId
+      ? Number.parseInt(params.departmentId)
+      : undefined,
+    search: params.search,
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <Skeleton className="h-10 w-64" />
-          <Skeleton className="h-10 w-32" />
-        </div>
-        <div className="grid gap-4 md:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 w-full rounded-lg" />
-          ))}
-        </div>
-        <div className="space-y-4">
-          <Skeleton className="h-12 w-96" />
-          <div className="flex flex-wrap gap-2">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-10 w-24 rounded-md" />
-            ))}
-          </div>
-        </div>
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-64 w-full rounded-lg" />
-        ))}
-      </div>
-    );
-  }
+  // Fetch data in parallel
+  const [complaintsData, stats, departments, staffList] = await Promise.all([
+    getComplaintsForRole(session.user.id!, "ADMIN", filters, {
+      take: 50,
+    }),
+    getComplaintStatusCountsForRole(session.user.id!, "ADMIN", filters),
+    getAllDepartments(),
+    getStaffMembers(),
+  ]);
 
-  if (error) {
-    return (
-      <div className="flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
-        <div className="w-full max-w-md space-y-4 text-center">
-          <AlertTriangle className="text-destructive mx-auto h-16 w-16" />
-          <h2 className="text-2xl font-bold">Error Loading Complaints</h2>
-          <p className="text-muted-foreground">{error}</p>
-          <Button onClick={fetchData}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Try Again
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const { data: complaints, total } = complaintsData;
 
   return (
     <div className="space-y-8 px-4 py-8 sm:px-6 lg:px-8">
@@ -253,214 +79,67 @@ export default function AdminComplaintsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <p className="text-muted-foreground mt-1 text-xs">
-            Last updated: {lastUpdated.toLocaleTimeString()}
-          </p>
-          <Button onClick={fetchData} variant="outline" disabled={loading}>
-            <RefreshCw
-              className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`}
-            />
-            Refresh
+          <Button variant="outline" asChild>
+            <Link href="/admin/complaints">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh
+            </Link>
           </Button>
         </div>
       </div>
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
-        <div className="rounded-lg border p-4">
-          <p className="text-muted-foreground text-sm">Total</p>
+        <div className="bg-card rounded-lg border p-4 shadow-sm">
+          <p className="text-muted-foreground text-sm font-medium">Filtered Total</p>
           <p className="text-2xl font-bold">{stats.total}</p>
         </div>
-        <div className="rounded-lg border p-4">
-          <p className="text-muted-foreground text-sm">Pending</p>
-          <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
+        <div className="bg-card rounded-lg border p-4 shadow-sm">
+          <p className="text-muted-foreground text-sm font-medium text-yellow-600">Pending</p>
+          <p className="text-2xl font-bold">{stats.pending}</p>
         </div>
-        <div className="rounded-lg border p-4">
-          <p className="text-muted-foreground text-sm">In Progress</p>
-          <p className="text-2xl font-bold text-blue-600">{stats.inProgress}</p>
+        <div className="bg-card rounded-lg border p-4 shadow-sm">
+          <p className="text-muted-foreground text-sm font-medium text-blue-600">In Progress</p>
+          <p className="text-2xl font-bold">{stats.inProgress}</p>
         </div>
-        <div className="rounded-lg border p-4">
-          <p className="text-muted-foreground text-sm">Resolved</p>
-          <p className="text-2xl font-bold text-green-600">{stats.resolved}</p>
+        <div className="bg-card rounded-lg border p-4 shadow-sm">
+          <p className="text-muted-foreground text-sm font-medium text-green-600">Resolved</p>
+          <p className="text-2xl font-bold">{stats.resolved}</p>
         </div>
       </div>
 
-      {/* Filters and Search */}
-      <div className="space-y-4 rounded-lg border p-4 sm:p-6">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            <h3 className="font-semibold">Filters</h3>
-          </div>
-          {(filters.status !== "all" ||
-            filters.priority !== "all" ||
-            filters.category !== "all" ||
-            filters.departmentId !== "all" ||
-            filters.search) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={resetFilters}
-              className="ml-auto"
-            >
-              Reset Filters
-            </Button>
-          )}
-        </div>
-
-        {/* Search Bar */}
-        <div className="relative">
-          <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-          <Input
-            placeholder="Search by title, details, location, or user name..."
-            value={filters.search}
-            onChange={(e) =>
-              setFilters((prev) => ({ ...prev, search: e.target.value }))
-            }
-            className="pl-10"
-          />
-        </div>
-
-        {/* Filter Dropdowns */}
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
-          <Select
-            value={filters.status}
-            onValueChange={(value) =>
-              setFilters((prev) => ({ ...prev, status: value }))
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="PENDING">Pending</SelectItem>
-              <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-              <SelectItem value="RESOLVED">Resolved</SelectItem>
-              <SelectItem value="REJECTED">Rejected</SelectItem>
-              <SelectItem value="ESCALATED">Escalated</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={filters.priority}
-            onValueChange={(value) =>
-              setFilters((prev) => ({ ...prev, priority: value }))
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Priority" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Priorities</SelectItem>
-              <SelectItem value="HIGH">High</SelectItem>
-              <SelectItem value="MEDIUM">Medium</SelectItem>
-              <SelectItem value="LOW">Low</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={filters.category}
-            onValueChange={(value) =>
-              setFilters((prev) => ({ ...prev, category: value }))
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              <SelectItem value="WATER">Water</SelectItem>
-              <SelectItem value="ELECTRICITY">Electricity</SelectItem>
-              <SelectItem value="SANITATION">Sanitation</SelectItem>
-              <SelectItem value="ROADS">Roads</SelectItem>
-              <SelectItem value="OTHER">Other</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={filters.departmentId}
-            onValueChange={(value) =>
-              setFilters((prev) => ({ ...prev, departmentId: value }))
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Department" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Departments</SelectItem>
-              {departments.map((dept) => (
-                <SelectItem key={dept.id} value={dept.id.toString()}>
-                  {dept.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger>
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="newest">Newest First</SelectItem>
-              <SelectItem value="oldest">Oldest First</SelectItem>
-              <SelectItem value="high-priority">High Priority First</SelectItem>
-              <SelectItem value="low-priority">Low Priority First</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Active Filters Display */}
-        {(filters.status !== "all" ||
-          filters.priority !== "all" ||
-          filters.category !== "all" ||
-          filters.departmentId !== "all") && (
-          <div className="flex flex-wrap gap-2">
-            {filters.status !== "all" && (
-              <Badge variant="secondary">Status: {filters.status}</Badge>
-            )}
-            {filters.priority !== "all" && (
-              <Badge variant="secondary">Priority: {filters.priority}</Badge>
-            )}
-            {filters.category !== "all" && (
-              <Badge variant="secondary">Category: {filters.category}</Badge>
-            )}
-            {filters.departmentId !== "all" && (
-              <Badge variant="secondary">
-                Department:{" "}
-                {
-                  departments.find(
-                    (d) => d.id.toString() === filters.departmentId,
-                  )?.name
-                }
-              </Badge>
-            )}
-          </div>
-        )}
-      </div>
+      {/* Filters */}
+      <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+        <ComplaintsFilters departments={departments} />
+      </Suspense>
 
       {/* Results Count */}
       <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
         <p className="text-muted-foreground text-sm">
-          Showing {filteredComplaints.length} of {complaints.length} complaints
+          Showing {complaints.length} of {total} complaints
         </p>
       </div>
 
       {/* Complaints List */}
-      {filteredComplaints.length === 0 ? (
-        <div className="rounded-lg border p-12 text-center">
+      {complaints.length === 0 ? (
+        <div className="rounded-lg border border-dashed p-12 text-center">
           <p className="text-muted-foreground">
             No complaints found matching your filters.
           </p>
+          <Button variant="link" asChild>
+            <Link href="/admin/complaints">Clear all filters</Link>
+          </Button>
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredComplaints.map((complaint) => (
+          {complaints.map((complaint) => (
             <ComplaintCard
               key={complaint.id}
-              complaint={complaint}
-              staffList={staffList}
-              onUpdate={handleComplaintUpdate}
+              complaint={complaint as any}
+              staffList={staffList as any}
+              detailHref={`/admin/complaints/${complaint.id}`}
+              canUpdateStatus
+              canAssignStaff
             />
           ))}
         </div>

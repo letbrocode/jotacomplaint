@@ -52,37 +52,42 @@ export async function updateComplaintAction(id: string, raw: unknown) {
   try {
     const session = await requireRole("ADMIN", "STAFF");
     const data = updateComplaintSchema.parse(raw);
-    const complaint = await updateComplaint(id, data, session.user.id);
+    const complaint = await updateComplaint(
+      id,
+      data,
+      session.user.id,
+      session.user.role,
+    );
 
     // Queue appropriate email
     if (data.status === "RESOLVED") {
-      await emailQueue.add("complaint-resolved", {
+      void emailQueue.add("complaint-resolved", {
         type: "complaint-resolved",
         complaintId: id,
         userId: complaint.userId,
-      });
+      }).catch(() => null);
     } else if (data.status === "REJECTED" && data.rejectionNote) {
-      await emailQueue.add("complaint-rejected", {
+      void emailQueue.add("complaint-rejected", {
         type: "complaint-rejected",
         complaintId: id,
         userId: complaint.userId,
         rejectionNote: data.rejectionNote,
-      });
+      }).catch(() => null);
     } else if (data.status) {
-      await emailQueue.add("status-updated", {
+      void emailQueue.add("status-updated", {
         type: "status-updated",
         complaintId: id,
         userId: complaint.userId,
         newStatus: data.status,
-      });
+      }).catch(() => null);
     }
 
     if (data.assignedToId) {
-      await emailQueue.add("complaint-assigned", {
+      void emailQueue.add("complaint-assigned", {
         type: "complaint-assigned",
         complaintId: id,
         assignedToId: data.assignedToId,
-      });
+      }).catch(() => null);
     }
 
     // Push real-time update to complaint channel
@@ -102,7 +107,7 @@ export async function updateComplaintAction(id: string, raw: unknown) {
     }).catch(() => null);
 
     // Refresh admin dashboard
-    await invalidateCache(CacheKeys.dashboardStats);
+    await invalidateCache(CacheKeys.dashboardStats).catch(() => null);
     await triggerDashboardRefresh().catch(() => null);
 
     revalidatePath("/admin/complaints");

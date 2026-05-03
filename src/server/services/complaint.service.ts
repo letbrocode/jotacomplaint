@@ -34,6 +34,67 @@ const complaintInclude = {
   _count: { select: { comments: true, activities: true } },
 } as const;
 
+function buildComplaintWhere(
+  userId: string,
+  role: Role,
+  filters: ComplaintFilters = {},
+): Prisma.ComplaintWhereInput {
+  const {
+    search,
+    status,
+    priority,
+    category,
+    departmentId,
+    assignedToId,
+    dateFrom,
+    dateTo,
+    isDuplicate,
+  } = filters;
+
+  const and: Prisma.ComplaintWhereInput[] = [];
+
+  if (search?.trim()) {
+    const term = search.trim();
+    and.push({
+      OR: [
+        { title: { contains: term, mode: "insensitive" } },
+        { details: { contains: term, mode: "insensitive" } },
+        { location: { contains: term, mode: "insensitive" } },
+      ],
+    });
+  }
+
+  if (role === "STAFF") {
+    and.push({
+      OR: [
+        { assignedToId: userId },
+        { department: { staff: { some: { id: userId } } } },
+      ],
+    });
+  } else if (role === "USER") {
+    and.push({ userId });
+  }
+
+  return {
+    deletedAt: null,
+    ...(status && { status }),
+    ...(priority && { priority }),
+    ...(category && { category }),
+    ...(departmentId && { departmentId }),
+    ...(assignedToId && { assignedToId }),
+    ...(isDuplicate !== undefined && { isDuplicate }),
+    ...(dateFrom || dateTo
+      ? {
+          createdAt: {
+            ...(dateFrom && { gte: dateFrom }),
+            ...(dateTo && { lte: dateTo }),
+          },
+        }
+      : {}),
+    ...(and.length > 0 && { AND: and }),
+  };
+}
+
 // ============================================
 // Queries
 // ============================================
@@ -48,41 +109,7 @@ export async function getComplaintsForRole(
   filters: ComplaintFilters = {},
   pagination: PaginationParams = {},
 ) {
-  const { search, status, priority, category, departmentId, assignedToId, dateFrom, dateTo, isDuplicate } = filters;
-
-  const where = {
-    deletedAt: null,
-    ...(status && { status }),
-    ...(priority && { priority }),
-    ...(category && { category }),
-    ...(departmentId && { departmentId }),
-    ...(assignedToId && { assignedToId }),
-    ...(isDuplicate !== undefined && { isDuplicate }),
-    ...(dateFrom || dateTo
-      ? { createdAt: { ...(dateFrom && { gte: dateFrom }), ...(dateTo && { lte: dateTo }) } }
-      : {}),
-    ...(search
-      ? {
-          OR: [
-            { title: { contains: search, mode: "insensitive" as const } },
-            { details: { contains: search, mode: "insensitive" as const } },
-            { location: { contains: search, mode: "insensitive" as const } },
-          ],
-        }
-      : {}),
-    // Role scoping
-    ...(role === "STAFF"
-      ? {
-          OR: [
-            { assignedToId: userId },
-            { department: { staff: { some: { id: userId } } } },
-          ],
-        }
-      : role === "USER"
-        ? { userId }
-        : {}),
-  };
-
+  const where = buildComplaintWhere(userId, role, filters);
   const take = pagination.take ?? 20;
   const cursorQuery = buildCursorQuery(pagination);
 
@@ -97,6 +124,23 @@ export async function getComplaintsForRole(
   ]);
 
   return buildPaginatedResponse(items, take, total);
+}
+
+export async function getComplaintStatusCountsForRole(
+  userId: string,
+  role: Role,
+  filters: ComplaintFilters = {},
+) {
+  const where = buildComplaintWhere(userId, role, filters);
+
+  const [total, pending, inProgress, resolved] = await Promise.all([
+    db.complaint.count({ where }),
+    db.complaint.count({ where: { ...where, status: "PENDING" } }),
+    db.complaint.count({ where: { ...where, status: "IN_PROGRESS" } }),
+    db.complaint.count({ where: { ...where, status: "RESOLVED" } }),
+  ]);
+
+  return { total, pending, inProgress, resolved };
 }
 
 /**
@@ -220,12 +264,37 @@ export async function updateComplaint(
   id: string,
   data: UpdateComplaintInput,
   actorId: string,
+  actorRole: Role,
 ) {
   const existing = await db.complaint.findUnique({
     where: { id, deletedAt: null },
-    include: { user: true },
+    include: { user: true, department: true },
   });
   if (!existing) throw new NotFoundError("Complaint");
+
+  if (actorRole === "STAFF") {
+    const isAssigned = existing.assignedToId === actorId;
+    const isInDept = existing.departmentId
+      ? await db.department.findFirst({
+          where: {
+            id: existing.departmentId,
+            staff: { some: { id: actorId } },
+          },
+        })
+      : null;
+
+    if (!isAssigned && !isInDept) {
+      throw new ForbiddenError(
+        "You can only update complaints in your department or assigned to you",
+      );
+    }
+
+    if (data.assignedToId !== undefined || data.departmentId !== undefined) {
+      throw new ForbiddenError(
+        "Staff cannot change complaint assignments or departments",
+      );
+    }
+  }
 
   const activities: Prisma.ComplaintActivityCreateManyInput[] = [];
   const notifications: Prisma.NotificationCreateManyInput[] = [];
