@@ -1,4 +1,5 @@
 import Pusher from "pusher";
+import { PusherChannels, PusherEvents } from "~/lib/pusher-events";
 
 // ============================================
 // Server-side Pusher client
@@ -24,33 +25,6 @@ export const pusherServer = new Pusher({
   cluster: process.env.PUSHER_CLUSTER,
   useTLS: true,
 });
-
-// ============================================
-// Channel naming conventions
-// ============================================
-
-export const PusherChannels = {
-  /** Per-complaint updates (status, assignment) */
-  complaint: (id: string) => `complaint-${id}`,
-  /** Per-user notifications badge */
-  userNotifications: (userId: string) => `user-${userId}-notifications`,
-  /** Admin dashboard aggregate refresh */
-  adminDashboard: "admin-dashboard",
-  /** Staff assignment queue */
-  staffQueue: (userId: string) => `staff-${userId}-queue`,
-} as const;
-
-// ============================================
-// Event names
-// ============================================
-
-export const PusherEvents = {
-  COMPLAINT_UPDATED: "complaint:updated",
-  COMPLAINT_STATUS_CHANGED: "complaint:status-changed",
-  NEW_NOTIFICATION: "notification:new",
-  UNREAD_COUNT_CHANGED: "notification:unread-count",
-  DASHBOARD_REFRESH: "dashboard:refresh",
-} as const;
 
 // ============================================
 // Trigger helpers — call these from actions/routes

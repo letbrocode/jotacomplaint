@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -29,6 +29,7 @@ import {
 } from "recharts";
 import type { ComplaintWithRelations } from "~/types/complaint";
 import Link from "next/link";
+import { useRealtimeNotifications } from "~/hooks/use-realtime-notifications";
 
 const COLORS = ["#f59e0b", "#3b82f6", "#10b981"];
 
@@ -56,7 +57,7 @@ export default function UserDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
-  const fetchComplaints = async () => {
+  const fetchComplaints = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -75,11 +76,17 @@ export default function UserDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void fetchComplaints();
-  }, []);
+  }, [fetchComplaints]);
+
+  useRealtimeNotifications(session?.user?.id ?? "", {
+    onNewNotification: () => {
+      void fetchComplaints();
+    },
+  });
 
   // Memoized statistics
   const stats = useMemo(() => {

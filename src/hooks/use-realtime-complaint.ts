@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback } from "react";
 import { getPusherClient } from "~/lib/pusher-client";
-import { PusherChannels, PusherEvents } from "~/lib/pusher";
+import { PusherChannels, PusherEvents } from "~/lib/pusher-events";
 
 type ComplaintUpdatePayload = {
   id: string;

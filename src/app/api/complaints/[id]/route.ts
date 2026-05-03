@@ -79,6 +79,29 @@ export async function PATCH(
       );
     }
 
+    if (session.user.role === "STAFF") {
+      const isAssigned = existing.assignedToId === session.user.id;
+      const isInDept = existing.departmentId
+        ? await db.department.findFirst({
+            where: {
+              id: existing.departmentId,
+              staff: { some: { id: session.user.id } },
+            },
+          })
+        : null;
+
+      if (!isAssigned && !isInDept) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+
+      if (assignedToId !== undefined || departmentId !== undefined) {
+        return NextResponse.json(
+          { error: "Staff cannot change assignment or department" },
+          { status: 403 },
+        );
+      }
+    }
+
     const activities: ActivityPayload[] = [];
     const notifications: NotificationPayload[] = [];
 
@@ -313,9 +336,22 @@ export async function GET(
       );
     }
 
-    if (
+    if (session?.user?.role === "STAFF") {
+      const isAssigned = complaint.assignedToId === session.user.id;
+      const isInDept = complaint.departmentId
+        ? await db.department.findFirst({
+            where: {
+              id: complaint.departmentId,
+              staff: { some: { id: session.user.id } },
+            },
+          })
+        : null;
+
+      if (!isAssigned && !isInDept) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    } else if (
       session?.user?.role !== "ADMIN" &&
-      session?.user?.role !== "STAFF" &&
       complaint.userId !== session?.user?.id
     ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });

@@ -24,6 +24,12 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 type FormValues = z.infer<typeof signInSchema>;
 
+function showRateLimitToast() {
+  toast.error("Too many sign-in attempts", {
+    description: "Please wait about a minute before trying again.",
+  });
+}
+
 const Signin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -40,12 +46,36 @@ const Signin = () => {
     setIsLoading(true);
 
     try {
-      await signIn("credentials", {
+      const result = await signIn("credentials", {
         email: data.email,
         password: data.password,
+        redirect: false,
+      });
+
+      if (result?.ok) {
+        window.location.href = "/dashboard";
+        return;
+      }
+
+      if (
+        result?.status === 429 ||
+        result?.error === "RateLimited" ||
+        result?.url?.includes("error=RateLimited")
+      ) {
+        showRateLimitToast();
+        return;
+      }
+
+      toast.error("Invalid credentials", {
+        description: "Please check your email and password.",
       });
     } catch (error) {
       console.log(error);
+      const message = error instanceof Error ? error.message : "";
+      if (message.includes("429") || message.includes("RateLimited")) {
+        showRateLimitToast();
+        return;
+      }
       toast.error("Something went wrong", {
         description: "Please try again later",
       });
@@ -123,6 +153,11 @@ const Signin = () => {
                   {errors.password && (
                     <p className="text-sm text-red-500">
                       {errors.password.message}
+                    </p>
+                  )}
+                  {error === "RateLimited" && (
+                    <p className="text-sm text-red-500">
+                      Too many sign-in attempts. Please wait about a minute.
                     </p>
                   )}
                   {error === "CredentialsSignin" && (

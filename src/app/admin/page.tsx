@@ -36,6 +36,7 @@ import {
 import type { ComplaintWithRelations } from "~/types/complaint";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
+import { useRealtimeDashboard } from "~/hooks/use-realtime-dashboard";
 
 // Color palette for charts - matches your UI theme
 const COLORS = {
@@ -94,6 +95,12 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     void fetchComplaints();
   }, [fetchComplaints]);
+
+  useRealtimeDashboard({
+    onRefresh: () => {
+      void fetchComplaints();
+    },
+  });
 
   // Memoized statistics with trends
   const stats = useMemo(() => {

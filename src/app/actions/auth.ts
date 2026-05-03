@@ -2,8 +2,17 @@
 import bcrypt from "bcryptjs";
 import { signInSchema } from "~/schemas/auth";
 import { db } from "~/server/db";
+import { authLimiter, getIp } from "~/lib/rate-limit";
+import { headers } from "next/headers";
 
 export const signup = async (email: string, password: string) => {
+  // Rate limiting
+  const ip = await getIp(await headers());
+  const { success } = await authLimiter.limit(ip);
+  if (!success) {
+    return { success: false, error: "Too many attempts. Please try again later." };
+  }
+
   //Validation
   const isValid = signInSchema.safeParse({ email, password });
 

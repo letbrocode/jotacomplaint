@@ -53,3 +53,15 @@ export function getIpFromRequest(req: Request): string {
     "anonymous"
   );
 }
+
+/**
+ * Helper for Server Actions to get IP.
+ */
+export async function getIp(headersList: Headers): Promise<string> {
+  return (
+    headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    headersList.get("x-real-ip") ??
+    "anonymous"
+  );
+}
+
