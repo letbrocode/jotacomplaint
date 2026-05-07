@@ -23,19 +23,12 @@ import {
   Filter,
 } from "lucide-react";
 import type { Department } from "@prisma/client";
-import type { ComplaintWithRelations } from "~/types/complaint"; // Fixed: Use existing type
+import type { ComplaintWithRelations } from "~/types/complaint";
 import ResolvedComplaintCard from "~/components/resolved-complaint-card";
 import ResolutionAnalytics from "~/components/resolution-analytics";
 
-// Inline type definition since it doesn't exist in types/complaint
-type ResolvedComplaintWithRelations = ComplaintWithRelations & {
-  resolvedAt: Date | null;
-};
-
 export default function ResolvedComplaintsPage() {
-  const [complaints, setComplaints] = useState<
-    ResolvedComplaintWithRelations[]
-  >([]);
+  const [complaints, setComplaints] = useState<ComplaintWithRelations[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +55,7 @@ export default function ResolvedComplaintsPage() {
       if (!deptRes.ok) throw new Error("Failed to fetch departments");
 
       const complaintsData =
-        (await complaintsRes.json()) as ResolvedComplaintWithRelations[];
+        (await complaintsRes.json()) as ComplaintWithRelations[];
       const deptData = (await deptRes.json()) as Department[];
 
       setComplaints(complaintsData);

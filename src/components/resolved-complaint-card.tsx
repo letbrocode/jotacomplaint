@@ -12,20 +12,11 @@ import {
   MessageSquare,
   ExternalLink,
 } from "lucide-react";
-import type { Complaint, User, Department } from "@prisma/client";
+import type { ComplaintWithRelations } from "~/types/complaint";
 import { formatDistanceToNow, differenceInDays, format } from "date-fns";
 
-type ResolvedComplaintWithRelations = Complaint & {
-  user: User;
-  department: Department | null;
-  assignedTo?: User | null;
-  _count?: {
-    comments?: number;
-  };
-};
-
 interface ResolvedComplaintCardProps {
-  complaint: ResolvedComplaintWithRelations;
+  complaint: ComplaintWithRelations;
 }
 
 export default function ResolvedComplaintCard({
