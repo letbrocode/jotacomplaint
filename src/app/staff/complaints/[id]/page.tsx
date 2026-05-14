@@ -19,7 +19,7 @@ export default async function StaffComplaintDetailsPage({ params }: PageProps) {
   const { id } = await params;
 
   try {
-    const complaint = await getComplaintById(id, session.user.id!, "STAFF");
+    const complaint = await getComplaintById(id, session.user.id, "STAFF");
 
     if (!complaint) {
       notFound();

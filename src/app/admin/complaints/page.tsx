@@ -58,10 +58,10 @@ export default async function AdminComplaintsPage({ searchParams }: PageProps) {
 
   // Fetch data in parallel
   const [complaintsData, stats, departments, staffList] = await Promise.all([
-    getComplaintsForRole(session.user.id!, "ADMIN", filters, {
+    getComplaintsForRole(session.user.id, "ADMIN", filters, {
       take: 50,
     }),
-    getComplaintStatusCountsForRole(session.user.id!, "ADMIN", filters),
+    getComplaintStatusCountsForRole(session.user.id, "ADMIN", filters),
     getAllDepartments(),
     getStaffMembers(),
   ]);

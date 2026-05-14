@@ -21,7 +21,7 @@ export default async function AdminComplaintDetailsPage({ params }: PageProps) {
 
   try {
     const [complaint, staffList] = await Promise.all([
-      getComplaintById(id, session.user.id!, "ADMIN"),
+      getComplaintById(id, session.user.id, "ADMIN"),
       getStaffMembers(),
     ]);
 

@@ -10,7 +10,7 @@ export default async function AdminSettingsPage() {
     redirect("/unauthorized");
   }
 
-  const user = await getUserById(session.user.id!);
+  const user = await getUserById(session.user.id);
 
   return (
     <div className="space-y-6">

@@ -14,7 +14,7 @@ export async function createCommentAction(raw: unknown) {
 
     const comment = await createComment(
       data,
-      session.user.id!,
+      session.user.id,
       session.user.role,
       session.user.name ?? session.user.email ?? "Unknown",
     );

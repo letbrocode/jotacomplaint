@@ -53,7 +53,7 @@ export default async function StaffComplaintsPage({ searchParams }: PageProps) {
   };
 
   const [complaintsData, departments] = await Promise.all([
-    getComplaintsForRole(session.user.id!, "STAFF", filters, { take: 50 }),
+    getComplaintsForRole(session.user.id, "STAFF", filters, { take: 50 }),
     getAllDepartments(),
   ]);
 
