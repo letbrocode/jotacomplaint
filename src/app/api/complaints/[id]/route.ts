@@ -3,9 +3,7 @@ import { auth } from "~/server/auth";
 import { apiLimiter, getIpFromRequest } from "~/lib/rate-limit";
 import { updateComplaintSchema } from "~/schemas/complaint.schema";
 import { updateComplaint, getComplaintById } from "~/server/services/complaint.service";
-import { NotFoundError, ForbiddenError } from "~/lib/errors";
-import { z } from "zod";
-import { logger } from "~/lib/logger";
+import { handleApiError } from "~/lib/errors";
 
 export async function PATCH(
   req: Request,
@@ -38,23 +36,7 @@ export async function PATCH(
 
     return NextResponse.json(updated);
   } catch (err) {
-    if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: "Invalid request data", details: err.errors }, { status: 400 });
-    }
-
-    if (err instanceof NotFoundError) {
-      return NextResponse.json({ error: err.message }, { status: 404 });
-    }
-
-    if (err instanceof ForbiddenError) {
-      return NextResponse.json({ error: err.message }, { status: 403 });
-    }
-
-    logger.error({ err }, "❌ Error updating complaint");
-    return NextResponse.json(
-      { error: "Failed to update complaint" },
-      { status: 500 },
-    );
+    return handleApiError(err);
   }
 }
 
@@ -73,18 +55,6 @@ export async function GET(
 
     return NextResponse.json(complaint);
   } catch (err) {
-    if (err instanceof NotFoundError) {
-      return NextResponse.json({ error: err.message }, { status: 404 });
-    }
-
-    if (err instanceof ForbiddenError) {
-      return NextResponse.json({ error: err.message }, { status: 403 });
-    }
-
-    logger.error({ err }, "❌ Error fetching complaint");
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return handleApiError(err);
   }
 }
