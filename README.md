@@ -1,140 +1,103 @@
-# JotaComplaint- Municipal Complaint Management System
+# JotaComplaint V2 — Municipal Complaint Management System
 
 <p align="center">
   <img src="./public/landing.png" alt="App Preview" width="800" />
 </p>
 
-## Demo:
-https://jotacomplaint.onrender.com/
+A production-grade, full-stack municipal service platform for citizen grievance redressal. Rebuilt for **V2** with a focus on enterprise patterns: 3-tier architecture, background job processing, real-time sync, and SLA management.
 
-A modern, full-stack web application built with the **T3 Stack** (Next.js 15, TypeScript, Tailwind CSS, Prisma, Auth.js) for efficient municipal complaint tracking and resolution.
+[![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
+[![Prisma](https://img.shields.io/badge/Prisma-6.5-green.svg)](https://prisma.io)
+[![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-4.0-38bdf8.svg)](https://tailwindcss.com/)
+[![Redis](https://img.shields.io/badge/Redis-Upstash-red.svg)](https://upstash.com/)
+[![Real-time](https://img.shields.io/badge/Pusher-Real--time-orange.svg)](https://pusher.com/)
 
-[![Next.js](https://img.shields.io/badge/Next.js-15-blue.svg)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue.svg)](https://www.typescriptlang.org/)
-[![Prisma](https://img.shields.io/badge/Prisma-5.15-green.svg)](https://prisma.io)
-[![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-3.4-blue.svg)](https://tailwindcss.com/)
+---
+
+## 🏗 Architecture & Patterns
+
+- **3-Tier Architecture**: Clean separation between API/Actions (Controllers) → Services (Business Logic) → Prisma (Data Access).
+- **Background Jobs**: BullMQ handles heavy lifting (emails, SLA checks, automated assignments) via Redis.
+- **Real-time Engine**: Pusher-powered live updates for dashboards, notifications, and status changes.
+- **SLA Engine**: Automated `dueDate` calculation based on category/priority policies with countdown timers.
+- **Distributed Caching**: Upstash Redis caching for expensive analytics queries with surgical invalidation.
+- **Duplicate Detection**: Smart search for similar complaints using title text matching and geospatial proximity.
 
 ---
 
 ## ✨ Features
 
-### **Core Functionality**
+### **For Citizens**
+- **Smarter Submission**: Report issues with GPS-tagged locations (Leaflet) and photo evidence (ImageKit).
+- **Real-time Tracking**: Live status updates and internal/public comment threads.
+- **Instant Notifications**: Browser and email alerts when your case is assigned or resolved.
 
-- **Multi-Role System:** Admin, Staff, Regular Users
-- **Real-time Complaint Tracking:** Create, assign, update, resolve
-- **Image Uploads:** Powered by ImageKit
-- **Role-Based Access Control**
-- **Responsive Design:** Desktop, tablet, and mobile
-
-### **Admin Dashboard**
-
-- Analytics with interactive charts (Recharts)
-- User management (activate/deactivate)
-- Department & category management
-- Real-time statistics & trends
-- Complaint overview & insights
-
-### **Staff Features**
-
-- Assigned complaint management
-- Status updates with history tracking
-- Internal comment system
-- Priority handling (Low / Medium / High)
-
-### **User Features**
-
-- Submit complaints with photos & location
-- View status & history in real time
-- Profile management
-
-### **Technical Features**
-
-- **Server Actions** & **Server Components**
-- Fully **type-safe** (TypeScript)
-- **shadcn/ui** modern component system
-- **Prisma ORM** with PostgreSQL
-- **Auth.js** with DB sessions
-- **ImageKit** optimization & CDN support
+### **For Staff & Admins**
+- **Unified Inbox**: Scoped views for assigned vs. departmental complaints.
+- **SLA Monitoring**: Visual countdowns and color-coded priority indicators to prevent breaches.
+- **Role-Based Access (RBAC)**: Secure access control enforced at both middleware and service layers.
+- **Audit Trails**: Complete activity history for every complaint (who changed what and when).
+- **Analytics Dashboard**: Real-time stats, trend charts (Recharts), and departmental performance breakdown.
 
 ---
 
 ## 🛠 Tech Stack
 
-| Area       | Tech                                            |
-| ---------- | ----------------------------------------------- |
-| Frontend   | Next.js 15, TypeScript, Tailwind CSS, shadcn/ui |
-| Backend    | Next.js API Routes, Prisma                      |
-| Auth       | Auth.js (database sessions)                     |
-| Database   | PostgreSQL                                      |
-| Maps       | Google Maps API                                 |
-| Images     | ImageKit                                        |
-| Charts     | Recharts                                        |
-| Deployment | Vercel / Railway / Docker                       |
+| Layer | Technology |
+|---|---|
+| **Frontend** | Next.js 16 (App Router), React 19, Tailwind CSS 4, shadcn/ui |
+| **Backend** | Service-oriented architecture, Server Actions, Next.js API |
+| **Database** | PostgreSQL + Prisma 6.5 |
+| **Auth** | Auth.js v5 (Database sessions) |
+| **Queues** | BullMQ + Upstash Redis |
+| **Real-time** | Pusher Channels |
+| **Email** | Resend + React Email templates |
+| **Maps** | Leaflet.js (OpenStreetMap) |
+| **Images** | ImageKit.io CDN |
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Getting Started
 
-### **Prerequisites**
+### **1. Prerequisites**
+- Node.js 20+
+- PostgreSQL
+- Upstash Redis (or local Redis)
+- Pusher Account
+- Resend Account
+- ImageKit Account
 
+### **2. Installation**
 ```bash
-Node.js 20+
-PostgreSQL 15+
-ImageKit Account
-```
-
-### **1. Clone & Install**
-
-```bash
-git clone
+git clone https://github.com/yourusername/jotacomplaint.git
 cd jotacomplaint
 npm install
 ```
 
-### **2. Environment Setup**
+### **3. Environment Setup**
+Copy `.env.example` to `.env` and fill in:
+- `DATABASE_URL` (PostgreSQL)
+- `AUTH_SECRET` (Generate with `npx auth secret`)
+- `REDIS_URL` (Upstash HTTP) and `REDIS_TCP_URL` (for BullMQ)
+- `PUSHER_APP_ID`, `NEXT_PUBLIC_PUSHER_KEY`, etc.
+- `RESEND_API_KEY`
+- `IMAGEKIT_PUBLIC_KEY`, `IMAGEKIT_PRIVATE_KEY`, etc.
 
+### **4. Database & Workers**
 ```bash
-cp .env.example .env
-
-# Update .env
-
-# Database
-DATABASE_URL=""
-
-# Auth
-AUTH_SECRET="your-super-secret-key"
-AUTH_URL="http://localhost:3000"
-
-
-# ImageKit (optional)
-IMAGEKIT_PUBLIC_KEY="your-public-key"
-IMAGEKIT_PRIVATE_KEY="your-private-key"
-IMAGEKIT_URL_ENDPOINT=""
-
-```
-
-### **3. Database Setup**
-
-```bash
-# Generate Prisma Client
-npx prisma generate
-
-# Push schema
-npx prisma db push
-
-# Seed data (optional)
+# Setup DB
+npx prisma migrate dev
 npx prisma db seed
+
+# Run App
+npm run dev
+
+# Run Worker (Required for emails/jobs)
+npm run worker
 ```
 
-## 🌍 Access
-
-- User → http://localhost:3000
-- Admin → http://localhost:3000/admin
-- Staff → http://localhost:3000/staff
-
-## 🔐 Default Credentials
-
-- Admin: admin@municipality.gov / 12345678
-- Staff: sanitation.officer@municipality.gov / 12345678 
-- User: priya.sharma@gmail.com / 12345678
-- Look into seed.ts for more test credentials
+## 🔐 Default Test Accounts
+- **Admin**: `admin@municipality.gov` / `12345678`
+- **Staff**: `sanitation.officer@municipality.gov` / `12345678`
+- **User**: `priya.sharma@gmail.com` / `12345678`
