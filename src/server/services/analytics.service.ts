@@ -103,8 +103,11 @@ async function _getDepartmentBreakdown() {
   }));
 }
 
-
 export async function getPublicStats() {
+  return getCached(CacheKeys.publicStats, _getPublicStats, 600);
+}
+
+async function _getPublicStats() {
   const [users, resolved] = await Promise.all([
     db.user.count({ where: { isActive: true, role: "USER" } }),
     db.complaint.count({ where: { status: "RESOLVED" } }),

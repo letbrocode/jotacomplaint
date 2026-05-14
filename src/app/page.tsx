@@ -31,8 +31,20 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "~/components/ui/sheet";
+import { getPublicStats } from "~/server/services/analytics.service";
 
-export default function LandingPage() {
+export const metadata = {
+  title: "JotaComplaint — Municipal Issue Reporting & Tracking",
+  description: "A modern platform for citizens to report municipal issues and for administrators to efficiently manage and resolve complaints in real-time.",
+};
+
+export default async function LandingPage() {
+  const stats = await getPublicStats().catch(() => ({
+    users: 0,
+    resolved: 0,
+    avgHours: 0,
+  }));
+
   return (
     <div className="flex min-h-screen flex-col">
       {/* Header/Navigation - IMPROVED */}
@@ -193,13 +205,15 @@ export default function LandingPage() {
         </div>
 
         {/* Hero Stats - IMPROVED */}
-        <div className="grid w-full max-w-4xl gap-3 pt-6 sm:grid-cols-3 sm:gap-4 sm:pt-8">
+        <div id="stats" className="grid w-full max-w-4xl gap-3 pt-6 sm:grid-cols-3 sm:gap-4 sm:pt-8">
           <Card>
             <CardHeader className="pb-2 sm:pb-3">
               <CardDescription className="text-xs sm:text-sm">
                 Active Users
               </CardDescription>
-              <CardTitle className="text-2xl sm:text-3xl">2,847</CardTitle>
+              <CardTitle className="text-2xl sm:text-3xl">
+                {stats.users.toLocaleString()}
+              </CardTitle>
             </CardHeader>
           </Card>
           <Card>
@@ -208,7 +222,7 @@ export default function LandingPage() {
                 Resolved Issues
               </CardDescription>
               <CardTitle className="text-2xl text-green-500 sm:text-3xl">
-                1,249
+                {stats.resolved.toLocaleString()}
               </CardTitle>
             </CardHeader>
           </Card>
@@ -218,7 +232,7 @@ export default function LandingPage() {
                 Avg. Response Time
               </CardDescription>
               <CardTitle className="text-2xl text-blue-500 sm:text-3xl">
-                18h
+                {stats.avgHours}h
               </CardTitle>
             </CardHeader>
           </Card>
