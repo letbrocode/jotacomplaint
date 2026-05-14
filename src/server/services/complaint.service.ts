@@ -10,6 +10,15 @@ import {
 import { DEFAULT_SLA_HOURS } from "~/lib/complaint";
 import { getSLADueDate } from "~/lib/date";
 import type { CreateComplaintInput, UpdateComplaintInput } from "~/schemas/complaint.schema";
+import type { ComplaintWithRelations } from "~/types/complaint";
+import { emailQueue } from "~/server/jobs/queues";
+import {
+  triggerComplaintUpdate,
+  triggerUserNotification,
+  triggerDashboardRefresh,
+} from "~/lib/pusher";
+import { getUnreadCount } from "~/server/services/notification.service";
+import { invalidateCache, CacheKeys } from "~/lib/cache";
 
 // ============================================
 // Types
@@ -254,6 +263,18 @@ export async function createComplaint(
     });
 
     return complaint;
+  }).then(async (complaint) => {
+    // ── Side Effects (Non-blocking) ──────────────────────────
+    void emailQueue.add("complaint-created", {
+      type: "complaint-created",
+      complaintId: complaint.id,
+      userId,
+    }).catch(() => null);
+
+    void invalidateCache(CacheKeys.dashboardStats, CacheKeys.departmentBreakdown).catch(() => null);
+    void triggerDashboardRefresh().catch(() => null);
+
+    return complaint;
   });
 }
 
@@ -377,7 +398,7 @@ export async function updateComplaint(
     });
   }
 
-  return db.$transaction(async (tx) => {
+  const result = await db.$transaction(async (tx) => {
     const updated = await tx.complaint.update({
       where: { id },
       data: {
@@ -400,6 +421,94 @@ export async function updateComplaint(
 
     return updated;
   });
+
+  // Trigger side effects
+  void postUpdateSideEffects({
+    complaint: result,
+    oldStatus: existing.status,
+    oldAssignedToId: existing.assignedToId,
+    rejectionNote: data.rejectionNote,
+  });
+
+  return result;
+}
+
+/**
+ * Handles non-blocking side effects after a complaint update.
+ */
+async function postUpdateSideEffects({
+  complaint,
+  oldStatus,
+  oldAssignedToId,
+  rejectionNote,
+}: {
+  complaint: ComplaintWithRelations;
+  oldStatus: Status;
+  oldAssignedToId: string | null;
+  rejectionNote?: string;
+}) {
+  try {
+    // 1. Queue Emails
+    if (complaint.status !== oldStatus) {
+      if (complaint.status === "RESOLVED") {
+        void emailQueue.add("complaint-resolved", {
+          type: "complaint-resolved",
+          complaintId: complaint.id,
+          userId: complaint.userId,
+        });
+      } else if (complaint.status === "REJECTED") {
+        void emailQueue.add("complaint-rejected", {
+          type: "complaint-rejected",
+          complaintId: complaint.id,
+          userId: complaint.userId,
+          rejectionNote: rejectionNote ?? "Please resubmit with more details if needed.",
+        });
+      } else {
+        void emailQueue.add("status-updated", {
+          type: "status-updated",
+          complaintId: complaint.id,
+          userId: complaint.userId,
+          newStatus: complaint.status,
+        });
+      }
+    }
+
+    if (complaint.assignedToId && complaint.assignedToId !== oldAssignedToId) {
+      void emailQueue.add("complaint-assigned", {
+        type: "complaint-assigned",
+        complaintId: complaint.id,
+        assignedToId: complaint.assignedToId,
+      });
+    }
+
+    // 2. Pusher Real-time
+    void triggerComplaintUpdate(complaint.id, {
+      id: complaint.id,
+      status: complaint.status,
+      assignedToId: complaint.assignedToId,
+      updatedAt: complaint.updatedAt.toISOString(),
+    }).catch(() => null);
+
+    void getUnreadCount(complaint.userId)
+      .then((unreadCount) =>
+        triggerUserNotification(complaint.userId, {
+          title: "Complaint Updated",
+          message: `Your complaint status changed to ${complaint.status}`,
+          unreadCount,
+        }),
+      )
+      .catch(() => null);
+
+    void triggerDashboardRefresh().catch(() => null);
+
+    // 3. Cache Invalidation
+    void invalidateCache(
+      CacheKeys.dashboardStats,
+      CacheKeys.departmentBreakdown,
+    ).catch(() => null);
+  } catch (err) {
+    console.error("❌ Error in postUpdateSideEffects:", err);
+  }
 }
 
 /**

@@ -29,17 +29,6 @@ export async function createComplaintAction(raw: unknown) {
     const data = createComplaintSchema.parse(raw);
     const complaint = await createComplaint(data, session.user.id);
 
-    // Queue confirmation email
-    await emailQueue.add("complaint-created", {
-      type: "complaint-created",
-      complaintId: complaint.id,
-      userId: session.user.id,
-    });
-
-    // Invalidate dashboard cache + trigger real-time refresh
-    await invalidateCache(CacheKeys.dashboardStats, CacheKeys.departmentBreakdown);
-    await triggerDashboardRefresh().catch(() => null);
-
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/complaints");
     return actionOk(complaint);
@@ -58,57 +47,6 @@ export async function updateComplaintAction(id: string, raw: unknown) {
       session.user.id,
       session.user.role,
     );
-
-    // Queue appropriate email
-    if (data.status === "RESOLVED") {
-      void emailQueue.add("complaint-resolved", {
-        type: "complaint-resolved",
-        complaintId: id,
-        userId: complaint.userId,
-      }).catch(() => null);
-    } else if (data.status === "REJECTED" && data.rejectionNote) {
-      void emailQueue.add("complaint-rejected", {
-        type: "complaint-rejected",
-        complaintId: id,
-        userId: complaint.userId,
-        rejectionNote: data.rejectionNote,
-      }).catch(() => null);
-    } else if (data.status) {
-      void emailQueue.add("status-updated", {
-        type: "status-updated",
-        complaintId: id,
-        userId: complaint.userId,
-        newStatus: data.status,
-      }).catch(() => null);
-    }
-
-    if (data.assignedToId) {
-      void emailQueue.add("complaint-assigned", {
-        type: "complaint-assigned",
-        complaintId: id,
-        assignedToId: data.assignedToId,
-      }).catch(() => null);
-    }
-
-    // Push real-time update to complaint channel
-    await triggerComplaintUpdate(id, {
-      id,
-      status: complaint.status,
-      assignedToId: complaint.assignedToId,
-      updatedAt: complaint.updatedAt.toISOString(),
-    }).catch(() => null);
-
-    // Notify the complaint owner in real-time
-    const unreadCount = await getUnreadCount(complaint.userId);
-    await triggerUserNotification(complaint.userId, {
-      title: "Complaint Updated",
-      message: `Your complaint status changed to ${complaint.status}`,
-      unreadCount,
-    }).catch(() => null);
-
-    // Refresh admin dashboard
-    await invalidateCache(CacheKeys.dashboardStats).catch(() => null);
-    await triggerDashboardRefresh().catch(() => null);
 
     revalidatePath("/admin/complaints");
     revalidatePath(`/admin/complaints/${id}`);
