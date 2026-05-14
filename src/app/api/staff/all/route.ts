@@ -7,7 +7,7 @@ export async function GET() {
     const session = await auth();
 
     // Only admins can view all staff with details
-    if (!session || session.user.role !== "ADMIN") {
+    if (session?.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
