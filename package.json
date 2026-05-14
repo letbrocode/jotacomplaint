@@ -24,6 +24,7 @@
     "preview": "next build && next start",
     "start": "next start",
     "test": "vitest",
+    "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit",
     "knip": "knip"
   },
