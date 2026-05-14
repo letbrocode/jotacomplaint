@@ -5,6 +5,7 @@ import { updateComplaintSchema } from "~/schemas/complaint.schema";
 import { updateComplaint, getComplaintById } from "~/server/services/complaint.service";
 import { NotFoundError, ForbiddenError } from "~/lib/errors";
 import { z } from "zod";
+import { logger } from "~/lib/logger";
 
 export async function PATCH(
   req: Request,
@@ -49,7 +50,7 @@ export async function PATCH(
       return NextResponse.json({ error: err.message }, { status: 403 });
     }
 
-    console.error("❌ Error updating complaint:", err);
+    logger.error({ err }, "❌ Error updating complaint");
     return NextResponse.json(
       { error: "Failed to update complaint" },
       { status: 500 },
@@ -80,7 +81,7 @@ export async function GET(
       return NextResponse.json({ error: err.message }, { status: 403 });
     }
 
-    console.error("❌ Error fetching complaint:", err);
+    logger.error({ err }, "❌ Error fetching complaint");
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

@@ -19,6 +19,7 @@ import {
 } from "~/lib/pusher";
 import { getUnreadCount } from "~/server/services/notification.service";
 import { invalidateCache, CacheKeys } from "~/lib/cache";
+import { logger } from "~/lib/logger";
 
 // ============================================
 // Types
@@ -507,7 +508,7 @@ async function postUpdateSideEffects({
       CacheKeys.departmentBreakdown,
     ).catch(() => null);
   } catch (err) {
-    console.error("❌ Error in postUpdateSideEffects:", err);
+    logger.error({ err, complaintId: complaint.id }, "❌ Error in postUpdateSideEffects");
   }
 }
 
