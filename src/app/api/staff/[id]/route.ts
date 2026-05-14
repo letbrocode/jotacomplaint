@@ -28,7 +28,16 @@ export async function GET(
 
     const user = await db.user.findUnique({
       where: { id: id },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        phone: true,
+        bio: true,
+        createdAt: true,
+        updatedAt: true,
         departments: true,
         _count: {
           select: { assignedComplaints: true },
@@ -43,8 +52,7 @@ export async function GET(
       );
     }
 
-    const { password: _, ...userWithoutPassword } = user;
-    return NextResponse.json(userWithoutPassword);
+    return NextResponse.json(user);
   } catch (error) {
     console.error("Error fetching staff member:", error);
     return NextResponse.json(
@@ -122,7 +130,16 @@ export async function PATCH(
             },
           }),
         },
-        include: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          isActive: true,
+          phone: true,
+          bio: true,
+          createdAt: true,
+          updatedAt: true,
           departments: true,
           _count: {
             select: { assignedComplaints: true },
@@ -133,8 +150,7 @@ export async function PATCH(
       return user;
     });
 
-    const { password: _, ...userWithoutPassword } = updated;
-    return NextResponse.json(userWithoutPassword);
+    return NextResponse.json(updated);
   } catch (error) {
     console.error("Error updating staff member:", error);
     return NextResponse.json(

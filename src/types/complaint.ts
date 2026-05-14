@@ -6,13 +6,11 @@ import type { Prisma } from "@prisma/client";
 // no manual sync needed if complaintInclude changes.
 // ============================================
 
-const _complaintInclude = {
-  user: { select: { id: true, name: true, email: true, role: true } },
-  department: { select: { id: true, name: true } },
-  assignedTo: { select: { id: true, name: true, email: true } },
-  _count: { select: { comments: true, activities: true } },
-} satisfies Prisma.ComplaintInclude;
-
 export type ComplaintWithRelations = Prisma.ComplaintGetPayload<{
-  include: typeof _complaintInclude;
+  include: {
+    user: { select: { id: true, name: true, email: true, role: true } };
+    department: { select: { id: true, name: true } };
+    assignedTo: { select: { id: true, name: true, email: true } };
+    _count: { select: { comments: true, activities: true } };
+  };
 }>;
