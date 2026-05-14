@@ -6,7 +6,7 @@ import { ComplaintsFilters } from "~/components/complaints-filters";
 import ComplaintCard from "~/components/complaint-card";
 import { Status, Priority, ComplaintCategory } from "@prisma/client";
 import { Button } from "~/components/ui/button";
-import { RefreshCw, MapPin, Navigation, Clock, AlertCircle } from "lucide-react";
+import { RefreshCw, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -52,7 +52,7 @@ export default async function StaffComplaintsPage({ searchParams }: PageProps) {
     assignedToId: session.user.id, // Only show assigned to them
   };
 
-  const [complaintsData, departments] = await Promise.all([
+  const [complaintsData] = await Promise.all([
     getComplaintsForRole(session.user.id, "STAFF", filters, { take: 50 }),
     getAllDepartments(),
   ]);

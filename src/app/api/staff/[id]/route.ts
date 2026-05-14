@@ -43,7 +43,7 @@ export async function GET(
       );
     }
 
-    const { password: _removed, ...userWithoutPassword } = user;
+    const { password: _, ...userWithoutPassword } = user;
     return NextResponse.json(userWithoutPassword);
   } catch (error) {
     console.error("Error fetching staff member:", error);
@@ -133,7 +133,7 @@ export async function PATCH(
       return user;
     });
 
-    const { password: _removed, ...userWithoutPassword } = updated;
+    const { password: _, ...userWithoutPassword } = updated;
     return NextResponse.json(userWithoutPassword);
   } catch (error) {
     console.error("Error updating staff member:", error);

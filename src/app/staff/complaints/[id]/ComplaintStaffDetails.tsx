@@ -20,7 +20,6 @@ import {
   User,
   Building2,
   AlertCircle,
-  CheckCircle,
   Clock,
   MessageSquare,
   Activity,

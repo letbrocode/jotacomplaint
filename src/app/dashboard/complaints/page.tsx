@@ -55,7 +55,7 @@ export default async function UserComplaintsPage({ searchParams }: PageProps) {
 
   // Run page fetch and accurate status counts in parallel —
   // counts come from DB aggregates, not the 50-item page slice.
-  const [complaintsData, stats, departments] = await Promise.all([
+  const [complaintsData, stats] = await Promise.all([
     getComplaintsForRole(session.user.id, "USER", filters, { take: 50 }),
     getComplaintStatusCountsForRole(session.user.id, "USER"),
     getAllDepartments(),

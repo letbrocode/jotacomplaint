@@ -1,4 +1,4 @@
-import { emailQueue, escalationQueue, digestQueue, cleanupQueue } from "./queues";
+import { escalationQueue, digestQueue, cleanupQueue } from "./queues";
 
 // ============================================
 // BullMQ Cron Scheduler

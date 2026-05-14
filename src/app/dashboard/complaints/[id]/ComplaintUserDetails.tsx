@@ -10,7 +10,6 @@ import { Textarea } from "~/components/ui/textarea";
 import {
   MapPin,
   Calendar,
-  User,
   Building2,
   AlertCircle,
   CheckCircle,
@@ -27,7 +26,6 @@ import { toast } from "sonner";
 import { createCommentAction } from "~/server/actions/comment.actions";
 import { useRealtimeComplaint } from "~/hooks/use-realtime-complaint";
 import { SlaCountdown } from "~/components/sla-countdown";
-import { cn } from "~/lib/utils";
 
 interface ComplaintUserDetailsProps {
   complaint: any;
