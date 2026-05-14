@@ -73,6 +73,12 @@ export default async function LandingPage() {
               Features
             </Link>
             <Link
+              href="/transparency"
+              className="text-primary hover:text-primary/80 text-sm font-bold transition-colors"
+            >
+              Transparency
+            </Link>
+            <Link
               href="#how-it-works"
               className="text-muted-foreground hover:text-primary text-sm font-medium transition-colors"
             >
@@ -199,7 +205,15 @@ export default async function LandingPage() {
               asChild
               className="w-full sm:w-auto"
             >
-              <Link href="/signin">Admin Portal</Link>
+              <Link href="/transparency">Public Portal</Link>
+            </Button>
+            <Button
+              size="lg"
+              variant="ghost"
+              asChild
+              className="w-full sm:w-auto"
+            >
+              <Link href="/signin">Admin Login</Link>
             </Button>
           </div>
         </div>

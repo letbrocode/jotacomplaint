@@ -524,9 +524,34 @@ export async function deleteComplaint(id: string) {
     data: { deletedAt: new Date() },
   });
 }
+/**
+ * Fetch a small set of complaints for the public transparency portal.
+ * Only includes non-sensitive fields.
+ */
+export async function getPublicComplaints(limit = 10) {
+  return db.complaint.findMany({
+    where: {
+      deletedAt: null,
+      status: { in: ["RESOLVED", "IN_PROGRESS", "ESCALATED"] },
+    },
+    select: {
+      id: true,
+      title: true,
+      category: true,
+      status: true,
+      createdAt: true,
+      resolvedAt: true,
+      location: true,
+      department: { select: { name: true } },
+    },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
+}
 
 /**
  * Find similar complaints using title text search + proximity.
+...
  * Uses Postgres ILIKE for basic similarity (pg_trgm can be added later via raw query).
  */
 export async function findSimilarComplaints(
