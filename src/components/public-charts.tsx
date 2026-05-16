@@ -13,7 +13,13 @@ import {
   Legend,
 } from "recharts";
 
-export function PublicTrendChart({ data }: { data: any[] }) {
+interface TrendDataPoint {
+  date: string;
+  count: number;
+  resolved: number;
+}
+
+export function PublicTrendChart({ data }: { data: TrendDataPoint[] }) {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={data}>
@@ -54,7 +60,12 @@ export function PublicTrendChart({ data }: { data: any[] }) {
   );
 }
 
-export function PublicDepartmentChart({ data }: { data: any[] }) {
+interface DepartmentDataPoint {
+  department: string;
+  total: number;
+}
+
+export function PublicDepartmentChart({ data }: { data: DepartmentDataPoint[] }) {
   const chartData = data
     .sort((a, b) => b.total - a.total)
     .slice(0, 6);

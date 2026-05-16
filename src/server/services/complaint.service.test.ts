@@ -48,8 +48,8 @@ describe("Complaint Service - updateComplaint", () => {
       updatedAt: new Date(),
     };
 
-    (db.complaint.findUnique as any).mockResolvedValue(mockExisting);
-    (db.complaint.update as any).mockResolvedValue(mockUpdated);
+    vi.mocked(db.complaint.findUnique).mockResolvedValue(mockExisting as never);
+    vi.mocked(db.complaint.update).mockResolvedValue(mockUpdated as never);
 
     const result = await updateComplaint(
       mockComplaintId,
@@ -69,13 +69,13 @@ describe("Complaint Service - updateComplaint", () => {
   });
 
   it("should throw ForbiddenError if staff updates unassigned complaint outside their department", async () => {
-    (db.complaint.findUnique as any).mockResolvedValue({
+    vi.mocked(db.complaint.findUnique).mockResolvedValue({
       id: mockComplaintId,
       assignedToId: "other-staff",
       departmentId: 1,
-    });
+    } as never);
     
-    (db.department.findFirst as any).mockResolvedValue(null);
+    vi.mocked(db.department.findFirst).mockResolvedValue(null as never);
 
     await expect(
       updateComplaint(mockComplaintId, { status: "IN_PROGRESS" }, "staff-1", "STAFF")

@@ -26,9 +26,10 @@ import { toast } from "sonner";
 import { createCommentAction } from "~/server/actions/comment.actions";
 import { useRealtimeComplaint } from "~/hooks/use-realtime-complaint";
 import { SlaCountdown } from "~/components/sla-countdown";
+import type { ComplaintWithRelations } from "~/types/complaint";
 
 interface ComplaintUserDetailsProps {
-  complaint: any;
+  complaint: ComplaintWithRelations;
 }
 
 export default function ComplaintUserDetails({ complaint }: ComplaintUserDetailsProps) {
@@ -192,7 +193,7 @@ export default function ComplaintUserDetails({ complaint }: ComplaintUserDetails
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                {complaint.comments?.map((comment: any) => (
+                {complaint.comments?.map((comment) => (
                   <div
                     key={comment.id}
                     className="bg-muted/30 rounded-lg border p-4 shadow-sm"
@@ -258,7 +259,7 @@ export default function ComplaintUserDetails({ complaint }: ComplaintUserDetails
             </CardHeader>
             <CardContent>
               <div className="relative space-y-4 before:absolute before:left-[11px] before:top-2 before:h-[calc(100%-8px)] before:w-[1px] before:bg-muted">
-                {complaint.activities?.map((activity: any) => (
+                {complaint.activities?.map((activity) => (
                   <div key={activity.id} className="relative pl-7">
                     <div className="absolute left-0 top-1.5 h-[22px] w-[22px] rounded-full border bg-background flex items-center justify-center">
                       <div className="h-1.5 w-1.5 rounded-full bg-primary" />
