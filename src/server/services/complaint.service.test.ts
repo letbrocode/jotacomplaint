@@ -14,7 +14,7 @@ vi.mock("~/server/db", () => ({
     department: {
       findFirst: vi.fn(),
     },
-    $transaction: vi.fn((cb) => cb(db)),
+    $transaction: vi.fn(<T>(cb: (tx: any) => Promise<T>) => cb(db)),
     notification: {
       createMany: vi.fn(),
     },

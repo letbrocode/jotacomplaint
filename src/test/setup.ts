@@ -10,7 +10,7 @@ vi.mock("~/lib/pusher", () => ({
 // Mock Redis/Cache
 vi.mock("~/lib/cache", () => ({
   invalidateCache: vi.fn().mockResolvedValue({}),
-  getCached: vi.fn((key, fn) => fn()),
+  getCached: vi.fn(<T>(key: string, fn: () => Promise<T>) => fn()),
   CacheKeys: {
     dashboardStats: "dashboardStats",
     departmentBreakdown: "departmentBreakdown",
