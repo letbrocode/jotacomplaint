@@ -6,14 +6,18 @@ import { triggerComplaintUpdate } from "~/lib/pusher";
 import type { Prisma } from "@prisma/client";
 
 // Mock Prisma
+const mockUpdate = vi.fn();
+const mockFindUnique = vi.fn();
+const mockFindFirst = vi.fn();
+
 vi.mock("~/server/db", () => ({
   db: {
     complaint: {
-      findUnique: vi.fn(),
-      update: vi.fn(),
+      findUnique: mockFindUnique,
+      update: mockUpdate,
     },
     department: {
-      findFirst: vi.fn(),
+      findFirst: mockFindFirst,
     },
     $transaction: vi.fn(<T>(cb: (tx: Prisma.TransactionClient) => Promise<T>) => cb(db as any)),
     notification: {
@@ -22,6 +26,14 @@ vi.mock("~/server/db", () => ({
     complaintActivity: {
       createMany: vi.fn(),
     },
+  },
+}));
+
+// Mock Email Queue
+const mockAdd = vi.fn();
+vi.mock("~/server/jobs/queues", () => ({
+  emailQueue: {
+    add: mockAdd,
   },
 }));
 
@@ -49,8 +61,8 @@ describe("Complaint Service - updateComplaint", () => {
       updatedAt: new Date(),
     };
 
-    vi.mocked(db.complaint).findUnique.mockResolvedValue(mockExisting as never);
-    vi.mocked(db.complaint).update.mockResolvedValue(mockUpdated as never);
+    mockFindUnique.mockResolvedValue(mockExisting);
+    mockUpdate.mockResolvedValue(mockUpdated);
 
     const result = await updateComplaint(
       mockComplaintId,
@@ -60,23 +72,23 @@ describe("Complaint Service - updateComplaint", () => {
     );
 
     expect(result.status).toBe("IN_PROGRESS");
-    expect(vi.mocked(db.complaint).update).toHaveBeenCalled();
+    expect(mockUpdate).toHaveBeenCalled();
     
     // Verify side effects (emails)
-    expect(vi.mocked(emailQueue).add).toHaveBeenCalledWith("status-updated", expect.any(Object));
+    expect(mockAdd).toHaveBeenCalledWith("status-updated", expect.any(Object));
     
     // Verify side effects (Pusher)
     expect(vi.mocked(triggerComplaintUpdate)).toHaveBeenCalledWith(mockComplaintId, expect.any(Object));
   });
 
   it("should throw ForbiddenError if staff updates unassigned complaint outside their department", async () => {
-    vi.mocked(db.complaint).findUnique.mockResolvedValue({
+    mockFindUnique.mockResolvedValue({
       id: mockComplaintId,
       assignedToId: "other-staff",
       departmentId: 1,
-    } as never);
+    });
     
-    vi.mocked(db.department).findFirst.mockResolvedValue(null as never);
+    mockFindFirst.mockResolvedValue(null);
 
     await expect(
       updateComplaint(mockComplaintId, { status: "IN_PROGRESS" }, "staff-1", "STAFF")
