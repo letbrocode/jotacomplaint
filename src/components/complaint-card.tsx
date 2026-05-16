@@ -182,7 +182,11 @@ export default function ComplaintCard({
                 <Badge variant="outline" className={priorityColor}>
                   {complaint.priority}
                 </Badge>
-                <Badge variant="outline" className={statusColor}>
+                <Badge
+                  variant="outline"
+                  className={statusColor}
+                  data-testid="complaint-status-badge"
+                >
                   {status.replace("_", " ")}
                 </Badge>
                 {isOverdue && (

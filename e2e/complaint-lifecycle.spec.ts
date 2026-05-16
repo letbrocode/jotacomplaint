@@ -13,7 +13,7 @@ async function loginAs(
   await page.getByLabel(/Email/i).fill(user.email);
   await page.getByLabel(/Password/i).fill(user.password);
   await page.getByRole("button", { name: /Sign In/i }).click();
-  await expect(page).toHaveURL(expectedPath);
+  await expect(page).toHaveURL(expectedPath, { timeout: 20000 });
 
   return { context, page };
 }
@@ -58,7 +58,7 @@ test.describe("Complaint Lifecycle", () => {
     await adminSession.page.getByRole("option", { name: E2E_USERS.staff.displayName }).click();
 
     await expect(complaintCard.getByText(/Assigned to:/i)).toBeVisible({ timeout: 10000 });
-    await expect(complaintCard.getByText(E2E_USERS.staff.displayName)).toBeVisible({ timeout: 10000 });
+    await expect(complaintCard.getByText(E2E_USERS.staff.displayName).first()).toBeVisible({ timeout: 10000 });
     await adminSession.context.close();
 
     // 3. STAFF RESOLVES
@@ -75,7 +75,7 @@ test.describe("Complaint Lifecycle", () => {
     await staffComplaintCard.getByLabel(/Update complaint status/i).click();
     await staffSession.page.getByRole("option", { name: /Resolved/i }).click();
 
-    await expect(staffComplaintCard.getByText(/resolved/i)).toBeVisible({ timeout: 10000 });
+    await expect(staffComplaintCard.getByTestId("complaint-status-badge")).toContainText(/resolved/i);
     await staffSession.context.close();
   });
 });
