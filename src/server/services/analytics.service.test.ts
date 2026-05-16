@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getPublicStats } from "~/server/services/analytics.service";
 
-const mockUserCount = vi.fn();
-const mockComplaintCount = vi.fn();
-const mockFindMany = vi.fn();
+const { mockUserCount, mockComplaintCount, mockFindMany } = vi.hoisted(() => ({
+  mockUserCount: vi.fn(),
+  mockComplaintCount: vi.fn(),
+  mockFindMany: vi.fn(),
+}));
 
 vi.mock("~/server/db", () => ({
   db: {

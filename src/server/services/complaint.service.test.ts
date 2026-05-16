@@ -5,9 +5,11 @@ import { triggerComplaintUpdate } from "~/lib/pusher";
 import type { Prisma } from "@prisma/client";
 
 // Mock Prisma
-const mockUpdate = vi.fn();
-const mockFindUnique = vi.fn();
-const mockFindFirst = vi.fn();
+const { mockUpdate, mockFindUnique, mockFindFirst } = vi.hoisted(() => ({
+  mockUpdate: vi.fn(),
+  mockFindUnique: vi.fn(),
+  mockFindFirst: vi.fn(),
+}));
 
 vi.mock("~/server/db", () => ({
   db: {
@@ -31,7 +33,10 @@ vi.mock("~/server/db", () => ({
 }));
 
 // Mock Email Queue
-const mockAdd = vi.fn();
+const { mockAdd } = vi.hoisted(() => ({
+  mockAdd: vi.fn(),
+}));
+
 vi.mock("~/server/jobs/queues", () => ({
   emailQueue: {
     add: mockAdd,
