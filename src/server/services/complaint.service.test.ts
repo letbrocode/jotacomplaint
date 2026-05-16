@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { updateComplaint } from "~/server/services/complaint.service";
 import { db } from "~/server/db";
-import { emailQueue } from "~/server/jobs/queues";
 import { triggerComplaintUpdate } from "~/lib/pusher";
 import type { Prisma } from "@prisma/client";
 
@@ -19,7 +18,9 @@ vi.mock("~/server/db", () => ({
     department: {
       findFirst: mockFindFirst,
     },
-    $transaction: vi.fn(<T>(cb: (tx: Prisma.TransactionClient) => Promise<T>) => cb(db as any)),
+    $transaction: vi.fn(<T>(cb: (tx: Prisma.TransactionClient) => Promise<T>) =>
+      cb(db as unknown as Prisma.TransactionClient),
+    ),
     notification: {
       createMany: vi.fn(),
     },

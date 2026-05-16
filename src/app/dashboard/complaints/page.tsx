@@ -15,7 +15,6 @@ import { Suspense } from "react";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
-import type { ComplaintWithRelations } from "~/types/complaint";
 
 export const dynamic = "force-dynamic";
 

@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getPublicStats } from "~/server/services/analytics.service";
-import { db } from "~/server/db";
 
 const mockUserCount = vi.fn();
 const mockComplaintCount = vi.fn();
