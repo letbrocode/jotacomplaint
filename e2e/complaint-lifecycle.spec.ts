@@ -4,6 +4,7 @@ test.describe("Complaint Lifecycle", () => {
   const TEST_TITLE = "Test Complaint " + Math.random().toString(36).substring(7);
 
   test("full lifecycle: user reports -> admin assigns -> staff resolves", async ({ page, context }) => {
+    test.setTimeout(90000);  // 3-role flow needs more than the default 30s
     // 1. USER LOGIN & REPORT
     await page.goto("/signin");
     await page.getByLabel(/Email/i).fill("rajesh.kumar@gmail.com");
@@ -15,7 +16,8 @@ test.describe("Complaint Lifecycle", () => {
     // Navigate to register page
     await page.goto("/dashboard/register");
     await page.getByLabel(/Title/i).fill(TEST_TITLE);
-    await page.getByLabel(/Details/i).fill("This is a detailed description of the municipal issue being reported via automated E2E test.");
+    // The textarea label is "Description *" in the form
+    await page.getByLabel(/Description/i).fill("This is a detailed description of the municipal issue being reported via automated E2E test.");
     
     // Select category (ROADS)
     await page.getByLabel(/Category/i).click();
