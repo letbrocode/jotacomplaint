@@ -11,6 +11,7 @@ import {
   findSimilarComplaints,
 } from "~/server/services/complaint.service";
 import { triggerDashboardRefresh } from "~/lib/pusher";
+import { invalidateCache, CacheKeys } from "~/lib/cache";
 
 // ============================================
 // Complaint Server Actions
