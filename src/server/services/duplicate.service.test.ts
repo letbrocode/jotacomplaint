@@ -1,10 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { db } from "~/server/db";
 import { findSimilarComplaints } from "~/server/services/duplicate.service";
+
+type MockSimilarRow = {
+  id: string;
+  title: string;
+  status: string;
+  category: string;
+  location: string | null;
+  created_at: Date;
+  title_sim: number;
+  distance_km: number | null;
+};
+
+const { queryRawMock } = vi.hoisted(() => ({
+  queryRawMock: vi.fn<(...args: unknown[]) => Promise<MockSimilarRow[]>>(),
+}));
 
 vi.mock("~/server/db", () => ({
   db: {
-    $queryRaw: vi.fn(),
+    $queryRaw: queryRawMock,
   },
 }));
 
@@ -15,7 +29,7 @@ describe("Duplicate Service - findSimilarComplaints", () => {
 
   it("maps rows without location filters", async () => {
     const createdAt = new Date("2026-01-01T00:00:00.000Z");
-    (db.$queryRaw as any).mockResolvedValue([
+    queryRawMock.mockResolvedValue([
       {
         id: "c1",
         title: "Road pothole near station",
@@ -45,12 +59,12 @@ describe("Duplicate Service - findSimilarComplaints", () => {
         distanceKm: null,
       },
     ]);
-    expect(db.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(queryRawMock).toHaveBeenCalledTimes(1);
   });
 
   it("maps rows with location filters and excludeId", async () => {
     const createdAt = new Date("2026-01-02T00:00:00.000Z");
-    (db.$queryRaw as any).mockResolvedValue([
+    queryRawMock.mockResolvedValue([
       {
         id: "c2",
         title: "Water leakage near market",
@@ -84,11 +98,11 @@ describe("Duplicate Service - findSimilarComplaints", () => {
         distanceKm: 1.53,
       },
     ]);
-    expect(db.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(queryRawMock).toHaveBeenCalledTimes(1);
   });
 
   it("returns an empty list when no similar complaints are found", async () => {
-    (db.$queryRaw as any).mockResolvedValue([]);
+    queryRawMock.mockResolvedValue([]);
 
     const result = await findSimilarComplaints("Unique complaint", {
       excludeId: "abc123",
