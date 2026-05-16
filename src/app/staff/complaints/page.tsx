@@ -150,7 +150,7 @@ export default async function StaffComplaintsPage({ searchParams }: PageProps) {
           complaints.map((complaint) => (
             <ComplaintCard
               key={complaint.id}
-              complaint={complaint as any}
+              complaint={complaint}
               detailHref={`/staff/complaints/${complaint.id}`}
               canUpdateStatus
             />

@@ -27,7 +27,7 @@ export function PublicTrendChart({ data }: { data: TrendDataPoint[] }) {
         <XAxis 
             dataKey="date" 
             tick={{ fontSize: 10 }} 
-            tickFormatter={(str) => str.split('-')[2]}
+            tickFormatter={(str: string) => str.split('-')[2] ?? str}
         />
         <YAxis tick={{ fontSize: 10 }} />
         <Tooltip

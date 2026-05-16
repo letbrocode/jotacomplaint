@@ -28,7 +28,11 @@ import { updateComplaintAction } from "~/server/actions/complaint.actions";
 
 interface ComplaintCardProps {
   complaint: ComplaintWithRelations;
-  staffList?: PrismaUser[];
+  staffList?: Array<{
+    id: string;
+    name: string | null;
+    email: string | null;
+  }>;
   onUpdate?: (updatedComplaint: ComplaintWithRelations) => void;
   detailHref?: string;
   canUpdateStatus?: boolean;

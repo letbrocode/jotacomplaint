@@ -20,29 +20,30 @@ import {
 import { getUnreadCount } from "~/server/services/notification.service";
 import { invalidateCache, CacheKeys } from "~/lib/cache";
 import { logger } from "~/lib/logger";
+import {
+  complaintListInclude,
+  type ComplaintWithRelations,
+  type ComplaintDetailsWithRelations,
+} from "~/types/complaint";
 
 // ============================================
 // Types
 // ============================================
 
 export type ComplaintFilters = {
+  search?: string;
   status?: Status;
   priority?: Priority;
   category?: ComplaintCategory;
   departmentId?: number;
   assignedToId?: string;
-  search?: string;
   dateFrom?: Date;
   dateTo?: Date;
   isDuplicate?: boolean;
 };
 
-const complaintInclude = {
-  user: { select: { id: true, name: true, email: true, role: true } },
-  department: { select: { id: true, name: true } },
-  assignedTo: { select: { id: true, name: true, email: true } },
-  _count: { select: { comments: true, activities: true } },
-} as const;
+const complaintInclude = complaintListInclude;
+
 
 function buildComplaintWhere(
   userId: string,
@@ -118,7 +119,7 @@ export async function getComplaintsForRole(
   role: Role,
   filters: ComplaintFilters = {},
   pagination: PaginationParams = {},
-) {
+): Promise<{ data: ComplaintWithRelations[]; total: number }> {
   const where = buildComplaintWhere(userId, role, filters);
   const take = pagination.take ?? 20;
   const cursorQuery = buildCursorQuery(pagination);
@@ -161,7 +162,7 @@ export async function getComplaintById(
   id: string,
   userId: string,
   role: Role,
-) {
+): Promise<ComplaintDetailsWithRelations> {
   const complaint = await db.complaint.findUnique({
     where: { id, deletedAt: null },
     include: {

@@ -135,8 +135,8 @@ export default async function AdminComplaintsPage({ searchParams }: PageProps) {
           {complaints.map((complaint) => (
             <ComplaintCard
               key={complaint.id}
-              complaint={complaint as any}
-              staffList={staffList as any}
+              complaint={complaint}
+              staffList={staffList}
               detailHref={`/admin/complaints/${complaint.id}`}
               canUpdateStatus
               canAssignStaff

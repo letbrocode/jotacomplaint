@@ -37,10 +37,10 @@ import { createCommentAction } from "~/server/actions/comment.actions";
 import { useRealtimeComplaint } from "~/hooks/use-realtime-complaint";
 import { SlaCountdown } from "~/components/sla-countdown";
 import { cn } from "~/lib/utils";
-import type { ComplaintWithRelations } from "~/types/complaint";
+import type { ComplaintDetailsWithRelations } from "~/types/complaint";
 
 interface ComplaintAdminDetailsProps {
-  complaint: ComplaintWithRelations;
+  complaint: ComplaintDetailsWithRelations;
   staffList: Array<{
     id: string;
     name: string | null;

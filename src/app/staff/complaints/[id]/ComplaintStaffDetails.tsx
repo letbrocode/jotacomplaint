@@ -37,11 +37,11 @@ import { useRealtimeComplaint } from "~/hooks/use-realtime-complaint";
 import { SlaCountdown } from "~/components/sla-countdown";
 import { cn } from "~/lib/utils";
 import Link from "next/link";
-import type { ComplaintWithRelations } from "~/types/complaint";
+import type { ComplaintDetailsWithRelations } from "~/types/complaint";
 import { Status } from "@prisma/client";
 
 interface ComplaintStaffDetailsProps {
-  complaint: ComplaintWithRelations;
+  complaint: ComplaintDetailsWithRelations;
 }
 
 export default function ComplaintStaffDetails({

@@ -26,10 +26,10 @@ import { toast } from "sonner";
 import { createCommentAction } from "~/server/actions/comment.actions";
 import { useRealtimeComplaint } from "~/hooks/use-realtime-complaint";
 import { SlaCountdown } from "~/components/sla-countdown";
-import type { ComplaintWithRelations } from "~/types/complaint";
+import type { ComplaintDetailsWithRelations } from "~/types/complaint";
 
 interface ComplaintUserDetailsProps {
-  complaint: ComplaintWithRelations;
+  complaint: ComplaintDetailsWithRelations;
 }
 
 export default function ComplaintUserDetails({ complaint }: ComplaintUserDetailsProps) {
