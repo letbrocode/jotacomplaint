@@ -52,7 +52,7 @@ export default async function TransparencyPage() {
         <div className="space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Community Impact</h2>
           <p className="text-muted-foreground text-lg">
-            Real-time data on how we're working together to improve our city.
+            Real-time data on how we&apos;re working together to improve our city.
           </p>
         </div>
 

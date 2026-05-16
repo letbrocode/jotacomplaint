@@ -286,7 +286,7 @@ export default function ComplaintUserDetails({ complaint }: ComplaintUserDetails
             <CardContent className="text-xs space-y-2 text-muted-foreground">
               <p>1. Our team reviews your complaint.</p>
               <p>2. A staff member is assigned to investigate.</p>
-              <p>3. You'll receive updates here in real-time.</p>
+              <p>3. You&apos;ll receive updates here in real-time.</p>
               <p>4. Once fixed, the status will change to Resolved.</p>
             </CardContent>
           </Card>

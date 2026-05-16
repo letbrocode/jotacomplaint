@@ -337,7 +337,7 @@ export default function ComplaintStaffDetails({
                       <span className="text-muted-foreground text-[10px]">
                         {format(new Date(activity.createdAt), "PPp")}
                       </span>
-                      {activity.comment && <p className="mt-1 text-xs text-muted-foreground italic">"{activity.comment}"</p>}
+                      {activity.comment && <p className="mt-1 text-xs text-muted-foreground italic">&quot;{activity.comment}&quot;</p>}
                       <span className="mt-1 text-[10px] font-medium text-muted-foreground">by {activity.user.name ?? "System"}</span>
                     </div>
                   </div>
