@@ -33,7 +33,7 @@ import { Loader2, Save, Key, Bell, User as UserIcon } from "lucide-react";
 import type { User } from "@prisma/client";
 
 interface SettingsFormProps {
-  user: User;
+  user: Omit<User, "password">;
 }
 
 export function SettingsForm({ user }: SettingsFormProps) {

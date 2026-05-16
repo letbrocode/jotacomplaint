@@ -10,7 +10,6 @@ import {
 import { DEFAULT_SLA_HOURS } from "~/lib/complaint";
 import { getSLADueDate } from "~/lib/date";
 import type { CreateComplaintInput, UpdateComplaintInput } from "~/schemas/complaint.schema";
-import type { ComplaintWithRelations } from "~/types/complaint";
 import { emailQueue } from "~/server/jobs/queues";
 import {
   triggerComplaintUpdate,
