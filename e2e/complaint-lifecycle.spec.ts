@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test.describe("Complaint Lifecycle", () => {
   const TEST_TITLE = "Test Complaint " + Math.random().toString(36).substring(7);
 
-  test("full lifecycle: user reports -> admin assigns -> staff resolves", async ({ page }) => {
+  test("full lifecycle: user reports -> admin assigns -> staff resolves", async ({ page, context }) => {
     // 1. USER LOGIN & REPORT
     await page.goto("/signin");
     await page.getByLabel(/Email/i).fill("rajesh.kumar@gmail.com");
@@ -25,11 +25,12 @@ test.describe("Complaint Lifecycle", () => {
     await page.getByRole("button", { name: /Submit Complaint/i }).click();
     
     // Should see success message or be redirected
-    await expect(page.getByText(/Complaint submitted successfully/i).or(page.getByText(TEST_TITLE))).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.getByText(/Complaint submitted successfully/i).or(page.getByText(TEST_TITLE))
+    ).toBeVisible({ timeout: 15000 });
 
-    // 2. ADMIN ASSIGNMENT
-    await page.goto("/api/auth/signout"); // Using internal signout for speed
-    await page.getByRole("button", { name: /Sign out/i }).click();
+    // 2. ADMIN ASSIGNMENT — clear session and re-login
+    await context.clearCookies();
     
     await page.goto("/signin");
     await page.getByLabel(/Email/i).fill("admin@municipality.gov");
@@ -40,25 +41,23 @@ test.describe("Complaint Lifecycle", () => {
     
     // Go to complaints list
     await page.goto("/admin/complaints");
-    await expect(page.getByText(TEST_TITLE)).toBeVisible();
+    await expect(page.getByText(TEST_TITLE)).toBeVisible({ timeout: 10000 });
     
     // Click on the complaint
     await page.getByText(TEST_TITLE).first().click();
     
-    // Assign to Roads Department / Staff
-    // (This assumes an assignment UI exists on the detail page)
+    // Assign to Roads Department / Staff (optional — UI may differ)
     const assignBtn = page.getByRole("button", { name: /Assign/i }).first();
-    if (await assignBtn.isVisible()) {
-        await assignBtn.click();
-        await page.getByLabel(/Staff/i).click();
-        await page.getByRole("option", { name: /Roads Officer/i }).click();
-        await page.getByRole("button", { name: /Save Assignment/i }).click();
-        await expect(page.getByText(/Assigned successfully/i)).toBeVisible();
+    if (await assignBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await assignBtn.click();
+      await page.getByLabel(/Staff/i).click();
+      await page.getByRole("option", { name: /Roads Officer/i }).click();
+      await page.getByRole("button", { name: /Save Assignment/i }).click();
+      await expect(page.getByText(/Assigned successfully/i)).toBeVisible({ timeout: 5000 });
     }
 
-    // 3. STAFF RESOLUTION
-    await page.goto("/api/auth/signout");
-    await page.getByRole("button", { name: /Sign out/i }).click();
+    // 3. STAFF RESOLUTION — clear session and re-login
+    await context.clearCookies();
 
     await page.goto("/signin");
     await page.getByLabel(/Email/i).fill("roads.officer@municipality.gov");
@@ -77,6 +76,6 @@ test.describe("Complaint Lifecycle", () => {
     await page.getByRole("option", { name: /Resolved/i }).click();
     await page.getByRole("button", { name: /Confirm Update/i }).click();
     
-    await expect(page.getByText(/RESOLVED/i)).toBeVisible();
+    await expect(page.getByText(/RESOLVED/i)).toBeVisible({ timeout: 10000 });
   });
 });

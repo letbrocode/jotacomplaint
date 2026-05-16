@@ -46,17 +46,24 @@ jobs:
       - name: Set up environment variables
         run: |
           echo "DATABASE_URL=postgresql://user:password@localhost:5432/jotacomplaint_test" >> .env
-          echo "AUTH_SECRET=ci-secret-key-12345" >> .env
-          echo "UPSTASH_REDIS_REST_URL=http://localhost:8080" >> .env
-          echo "UPSTASH_REDIS_REST_TOKEN=ci-token" >> .env
+          echo "AUTH_SECRET=ci-secret-key-for-testing-only-32chars" >> .env
+          echo "AUTH_URL=http://localhost:3000" >> .env
+          echo "AUTH_TRUST_HOST=true" >> .env
+          echo "UPSTASH_REDIS_REST_URL=https://fake-ci.upstash.io" >> .env
+          echo "UPSTASH_REDIS_REST_TOKEN=ci-fake-token" >> .env
           echo "REDIS_URL=redis://localhost:6379" >> .env
           echo "NEXT_PUBLIC_APP_URL=http://localhost:3000" >> .env
-          echo "SKIP_ENV_VALIDATION=1" >> .env
           echo "PUSHER_APP_ID=ci-pusher-app-id" >> .env
           echo "PUSHER_KEY=ci-pusher-key" >> .env
           echo "PUSHER_SECRET=ci-pusher-secret" >> .env
           echo "PUSHER_CLUSTER=mt1" >> .env
-          echo "AUTH_TRUST_HOST=true" >> .env
+          echo "NEXT_PUBLIC_PUSHER_KEY=ci-pusher-key" >> .env
+          echo "NEXT_PUBLIC_PUSHER_CLUSTER=mt1" >> .env
+          echo "RESEND_API_KEY=re_ci_fake_key" >> .env
+          echo "IMAGEKIT_PUBLIC_KEY=ci_fake" >> .env
+          echo "IMAGEKIT_PRIVATE_KEY=ci_fake" >> .env
+          echo "IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/fake" >> .env
+          echo "SKIP_ENV_VALIDATION=1" >> .env
 
       - name: Prisma Generate & Push
         run: |
@@ -71,6 +78,9 @@ jobs:
 
       - name: Run Unit Tests (Vitest)
         run: npm run test -- --run
+
+      - name: Seed database for E2E
+        run: npm run seed
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium

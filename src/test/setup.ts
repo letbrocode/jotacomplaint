@@ -7,13 +7,15 @@ vi.mock("~/lib/pusher", () => ({
   triggerDashboardRefresh: vi.fn().mockResolvedValue({}),
 }));
 
-// Mock Redis/Cache
+// Mock Redis/Cache — pass-through: getCached just calls the fetcher directly
 vi.mock("~/lib/cache", () => ({
   invalidateCache: vi.fn().mockResolvedValue({}),
-  getCached: vi.fn(<T>(key: string, fn: () => Promise<T>) => fn()),
+  getCached: vi.fn(<T>(_key: string, fn: () => Promise<T>) => fn()),
   CacheKeys: {
     dashboardStats: "dashboardStats",
     departmentBreakdown: "departmentBreakdown",
+    publicStats: "publicStats",
+    trendData: (days: number) => `analytics:trend:${days}`,
   },
 }));
 
