@@ -158,14 +158,18 @@ export default function ComplaintCard({
     new Date(complaint.dueDate).getTime() < Date.now();
 
   return (
-    <Card className="relative overflow-hidden transition-all hover:shadow-md">
+    <Card
+      className="relative overflow-hidden transition-all hover:shadow-md"
+      data-testid="complaint-item"
+      data-complaint-id={complaint.id}
+    >
       <div className="grid grid-cols-1 md:grid-cols-3">
         {/* Left Side: Details */}
         <div className="col-span-2 flex flex-col justify-between">
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <CardTitle className="text-lg font-semibold">
+                <CardTitle className="text-lg font-semibold" data-testid="complaint-title">
                   {complaint.title}
                 </CardTitle>
                 {complaint.department && (
@@ -280,6 +284,7 @@ export default function ComplaintCard({
                       <SelectTrigger
                         className="w-full"
                         aria-label="Assign complaint to staff"
+                        data-testid="assign-staff-trigger"
                       >
                         <SelectValue placeholder="Select staff" />
                       </SelectTrigger>
@@ -308,7 +313,9 @@ export default function ComplaintCard({
             {/* Action Buttons */}
             <div className="flex gap-2 border-t pt-3">
               <Button variant="outline" size="sm" className="flex-1" asChild>
-                <a href={detailHref}>View Details</a>
+                <a href={detailHref} data-testid="complaint-view-details">
+                  View Details
+                </a>
               </Button>
             </div>
           </CardContent>

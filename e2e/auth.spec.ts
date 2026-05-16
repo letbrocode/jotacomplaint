@@ -32,8 +32,7 @@ test.describe("Authentication Flow", () => {
 
     // Soft assertion: if we can confirm the error text, even better
     if (!errorVisible) {
-      console.warn("Error text not found in DOM — may be in a toast portal. Login correctly failed (still on /signin).");
+      console.warn("Error text not found in DOM - may be in a toast portal. Login correctly failed (still on /signin).");
     }
   });
 });
-
