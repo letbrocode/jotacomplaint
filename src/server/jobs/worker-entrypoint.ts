@@ -21,12 +21,12 @@ await startScheduler();
 console.log("✅ All workers and schedulers active. Waiting for jobs...");
 
 // Keep the process alive
-process.on("SIGTERM", async () => {
+process.on("SIGTERM", () => {
   console.log("SIGTERM received — shutting down workers gracefully");
   process.exit(0);
 });
 
-process.on("SIGINT", async () => {
+process.on("SIGINT", () => {
   console.log("SIGINT received — shutting down workers gracefully");
   process.exit(0);
 });
