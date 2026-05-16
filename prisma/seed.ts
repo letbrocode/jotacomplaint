@@ -16,7 +16,7 @@ const prisma = new PrismaClient();
 function generateNearbyCoord(
   baseLat: number,
   baseLng: number,
-  radiusKm: number = 2,
+  radiusKm = 2,
 ): { lat: number; lng: number } {
   const latOffset = (Math.random() - 0.5) * (radiusKm / 55.5);
   const lngOffset = (Math.random() - 0.5) * (radiusKm / 55.5);

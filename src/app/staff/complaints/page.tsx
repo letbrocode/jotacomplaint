@@ -4,7 +4,7 @@ import { getComplaintsForRole } from "~/server/services/complaint.service";
 import { getAllDepartments } from "~/server/services/department.service";
 import { ComplaintsFilters } from "~/components/complaints-filters";
 import ComplaintCard from "~/components/complaint-card";
-import { Status, Priority, ComplaintCategory } from "@prisma/client";
+import { type Status, Priority, ComplaintCategory } from "@prisma/client";
 import { Button } from "~/components/ui/button";
 import { RefreshCw, AlertCircle } from "lucide-react";
 import Link from "next/link";

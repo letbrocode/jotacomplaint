@@ -38,7 +38,7 @@ import { SlaCountdown } from "~/components/sla-countdown";
 import { cn } from "~/lib/utils";
 import Link from "next/link";
 import type { ComplaintDetailsWithRelations } from "~/types/complaint";
-import { Status } from "@prisma/client";
+import type { Status } from "@prisma/client";
 
 interface ComplaintStaffDetailsProps {
   complaint: ComplaintDetailsWithRelations;

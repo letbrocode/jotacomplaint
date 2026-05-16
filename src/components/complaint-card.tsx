@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { toast } from "sonner";
-import type { $Enums, User as PrismaUser } from "@prisma/client";
+import type { $Enums } from "@prisma/client";
 import type { ComplaintWithRelations } from "~/types/complaint";
 import { SlaCountdown } from "~/components/sla-countdown";
 import { updateComplaintAction } from "~/server/actions/complaint.actions";

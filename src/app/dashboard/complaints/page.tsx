@@ -169,7 +169,7 @@ export default async function UserComplaintsPage({ searchParams }: PageProps) {
           {complaints.map((complaint) => (
             <ComplaintCard
               key={complaint.id}
-              complaint={complaint as ComplaintWithRelations}
+              complaint={complaint}
               detailHref={`/dashboard/complaints/${complaint.id}`}
             />
           ))}

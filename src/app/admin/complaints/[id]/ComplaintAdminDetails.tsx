@@ -31,7 +31,7 @@ import {
 import { format, formatDistanceToNow } from "date-fns";
 import ImageModal from "~/components/image-modal";
 import { toast } from "sonner";
-import { Status, Priority } from "@prisma/client";
+import type { Status } from "@prisma/client";
 import { updateComplaintAction } from "~/server/actions/complaint.actions";
 import { createCommentAction } from "~/server/actions/comment.actions";
 import { useRealtimeComplaint } from "~/hooks/use-realtime-complaint";
