@@ -27,12 +27,18 @@ export const metadata = {
 };
 
 export default async function TransparencyPage() {
-  const [stats, trendData, deptData, recentComplaints] = await Promise.all([
+  const [statsResult, trendResult, deptResult, complaintsResult] = await Promise.allSettled([
     getPublicStats(),
     getTrendData(30),
     getDepartmentBreakdown(),
     getPublicComplaints(10),
   ]);
+
+  const stats = statsResult.status === "fulfilled" ? statsResult.value : { users: 0, resolved: 0, avgHours: 0 };
+  const trendData = trendResult.status === "fulfilled" ? trendResult.value : [];
+  const deptData = deptResult.status === "fulfilled" ? deptResult.value : [];
+  const recentComplaints = complaintsResult.status === "fulfilled" ? complaintsResult.value : [];
+
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -52,7 +58,7 @@ export default async function TransparencyPage() {
         <div className="space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Community Impact</h2>
           <p className="text-muted-foreground text-lg">
-            Real-time data on how we're working together to improve our city.
+            Real-time data on how we&apos;re working together to improve our city.
           </p>
         </div>
 

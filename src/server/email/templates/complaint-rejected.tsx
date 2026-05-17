@@ -18,7 +18,7 @@ type Props = {
   rejectionNote: string;
 };
 
-export function ComplaintRejectedEmail({ userName, complaintTitle, complaintId, rejectionNote }: Props) {
+export function ComplaintRejectedEmail({ userName, complaintTitle, complaintId: _complaintId, rejectionNote }: Props) {
   const newComplaintUrl = `${APP_URL}/dashboard/new`;
 
   return (

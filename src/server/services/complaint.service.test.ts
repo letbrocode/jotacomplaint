@@ -1,26 +1,45 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { updateComplaint } from "~/server/services/complaint.service";
 import { db } from "~/server/db";
-import { emailQueue } from "~/server/jobs/queues";
 import { triggerComplaintUpdate } from "~/lib/pusher";
+import type { Prisma } from "@prisma/client";
 
 // Mock Prisma
+const { mockUpdate, mockFindUnique, mockFindFirst } = vi.hoisted(() => ({
+  mockUpdate: vi.fn(),
+  mockFindUnique: vi.fn(),
+  mockFindFirst: vi.fn(),
+}));
+
 vi.mock("~/server/db", () => ({
   db: {
     complaint: {
-      findUnique: vi.fn(),
-      update: vi.fn(),
+      findUnique: mockFindUnique,
+      update: mockUpdate,
     },
     department: {
-      findFirst: vi.fn(),
+      findFirst: mockFindFirst,
     },
-    $transaction: vi.fn((cb) => cb(db)),
+    $transaction: vi.fn(<T>(cb: (tx: Prisma.TransactionClient) => Promise<T>) =>
+      cb(db as unknown as Prisma.TransactionClient),
+    ),
     notification: {
       createMany: vi.fn(),
     },
     complaintActivity: {
       createMany: vi.fn(),
     },
+  },
+}));
+
+// Mock Email Queue
+const { mockAdd } = vi.hoisted(() => ({
+  mockAdd: vi.fn(),
+}));
+
+vi.mock("~/server/jobs/queues", () => ({
+  emailQueue: {
+    add: mockAdd,
   },
 }));
 
@@ -48,8 +67,8 @@ describe("Complaint Service - updateComplaint", () => {
       updatedAt: new Date(),
     };
 
-    (db.complaint.findUnique as any).mockResolvedValue(mockExisting);
-    (db.complaint.update as any).mockResolvedValue(mockUpdated);
+    mockFindUnique.mockResolvedValue(mockExisting);
+    mockUpdate.mockResolvedValue(mockUpdated);
 
     const result = await updateComplaint(
       mockComplaintId,
@@ -59,23 +78,23 @@ describe("Complaint Service - updateComplaint", () => {
     );
 
     expect(result.status).toBe("IN_PROGRESS");
-    expect(db.complaint.update).toHaveBeenCalled();
+    expect(mockUpdate).toHaveBeenCalled();
     
     // Verify side effects (emails)
-    expect(emailQueue.add).toHaveBeenCalledWith("status-updated", expect.any(Object));
+    expect(mockAdd).toHaveBeenCalledWith("status-updated", expect.any(Object));
     
     // Verify side effects (Pusher)
-    expect(triggerComplaintUpdate).toHaveBeenCalledWith(mockComplaintId, expect.any(Object));
+    expect(vi.mocked(triggerComplaintUpdate)).toHaveBeenCalledWith(mockComplaintId, expect.any(Object));
   });
 
   it("should throw ForbiddenError if staff updates unassigned complaint outside their department", async () => {
-    (db.complaint.findUnique as any).mockResolvedValue({
+    mockFindUnique.mockResolvedValue({
       id: mockComplaintId,
       assignedToId: "other-staff",
       departmentId: 1,
     });
     
-    (db.department.findFirst as any).mockResolvedValue(null);
+    mockFindFirst.mockResolvedValue(null);
 
     await expect(
       updateComplaint(mockComplaintId, { status: "IN_PROGRESS" }, "staff-1", "STAFF")

@@ -10,13 +10,7 @@ import {
   deleteComplaint,
   findSimilarComplaints,
 } from "~/server/services/complaint.service";
-import { emailQueue } from "~/server/jobs/queues";
-import {
-  triggerComplaintUpdate,
-  triggerDashboardRefresh,
-  triggerUserNotification,
-} from "~/lib/pusher";
-import { getUnreadCount } from "~/server/services/notification.service";
+import { triggerDashboardRefresh } from "~/lib/pusher";
 import { invalidateCache, CacheKeys } from "~/lib/cache";
 
 // ============================================

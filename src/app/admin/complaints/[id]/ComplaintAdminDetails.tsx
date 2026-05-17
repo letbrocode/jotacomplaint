@@ -31,14 +31,16 @@ import {
 import { format, formatDistanceToNow } from "date-fns";
 import ImageModal from "~/components/image-modal";
 import { toast } from "sonner";
+import type { Status } from "@prisma/client";
 import { updateComplaintAction } from "~/server/actions/complaint.actions";
 import { createCommentAction } from "~/server/actions/comment.actions";
 import { useRealtimeComplaint } from "~/hooks/use-realtime-complaint";
 import { SlaCountdown } from "~/components/sla-countdown";
 import { cn } from "~/lib/utils";
+import type { ComplaintDetailsWithRelations } from "~/types/complaint";
 
 interface ComplaintAdminDetailsProps {
-  complaint: any; // Using any for brevity here, should ideally be typed
+  complaint: ComplaintDetailsWithRelations;
   staffList: Array<{
     id: string;
     name: string | null;
@@ -60,7 +62,7 @@ export default function ComplaintAdminDetails({
     onUpdate: () => router.refresh(),
   });
 
-  const handleStatusUpdate = async (newStatus: any) => {
+  const handleStatusUpdate = async (newStatus: Status) => {
     setUpdating(true);
     const result = await updateComplaintAction(complaint.id, { status: newStatus });
     if (result.success) {
@@ -238,7 +240,7 @@ export default function ComplaintAdminDetails({
                     <div className="mt-2 text-sm">
                       <p className="font-medium">Found {complaint.duplicates.length} duplicates:</p>
                       <ul className="mt-1 list-inside list-disc space-y-1">
-                        {complaint.duplicates.map((dup: any) => (
+                        {complaint.duplicates.map((dup) => (
                           <li key={dup.id}>
                             <a href={`/admin/complaints/${dup.id}`} className="underline underline-offset-4">
                               {dup.title}
@@ -264,7 +266,7 @@ export default function ComplaintAdminDetails({
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                {complaint.comments?.map((comment: any) => (
+                {complaint.comments?.map((comment) => (
                   <div
                     key={comment.id}
                     className={cn(
@@ -402,7 +404,7 @@ export default function ComplaintAdminDetails({
             </CardHeader>
             <CardContent>
               <div className="relative space-y-4 before:absolute before:left-[11px] before:top-2 before:h-[calc(100%-8px)] before:w-[1px] before:bg-muted">
-                {complaint.activities?.map((activity: any) => (
+                {complaint.activities?.map((activity) => (
                   <div key={activity.id} className="relative pl-7">
                     <div className="absolute left-0 top-1.5 h-[22px] w-[22px] rounded-full border bg-background flex items-center justify-center">
                       <div className="h-1.5 w-1.5 rounded-full bg-primary" />
@@ -412,7 +414,7 @@ export default function ComplaintAdminDetails({
                       <span className="text-muted-foreground text-[10px]">
                         {format(new Date(activity.createdAt), "PPp")}
                       </span>
-                      {activity.comment && <p className="mt-1 text-xs text-muted-foreground italic">"{activity.comment}"</p>}
+                      {activity.comment && <p className="mt-1 text-xs text-muted-foreground italic">&quot;{activity.comment}&quot;</p>}
                       <span className="mt-1 text-[10px] font-medium">by {activity.user.name ?? "System"}</span>
                     </div>
                   </div>

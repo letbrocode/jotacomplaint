@@ -1,15 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getPublicStats } from "~/server/services/analytics.service";
-import { db } from "~/server/db";
+
+const { mockUserCount, mockComplaintCount, mockFindMany } = vi.hoisted(() => ({
+  mockUserCount: vi.fn(),
+  mockComplaintCount: vi.fn(),
+  mockFindMany: vi.fn(),
+}));
 
 vi.mock("~/server/db", () => ({
   db: {
     user: {
-      count: vi.fn(),
+      count: mockUserCount,
     },
     complaint: {
-      count: vi.fn(),
-      findMany: vi.fn(),
+      count: mockComplaintCount,
+      findMany: mockFindMany,
     },
   },
 }));
@@ -20,9 +25,9 @@ describe("Analytics Service", () => {
   });
 
   it("should return public stats correctly", async () => {
-    (db.user.count as any).mockResolvedValue(100);
-    (db.complaint.count as any).mockResolvedValue(50);
-    (db.complaint.findMany as any).mockResolvedValue([
+    mockUserCount.mockResolvedValue(100);
+    mockComplaintCount.mockResolvedValue(50);
+    mockFindMany.mockResolvedValue([
       {
         createdAt: new Date("2026-05-01T10:00:00Z"),
         resolvedAt: new Date("2026-05-01T12:00:00Z"), // 2 hours
@@ -41,9 +46,9 @@ describe("Analytics Service", () => {
   });
 
   it("should handle zero resolved complaints for avgHours", async () => {
-    (db.user.count as any).mockResolvedValue(10);
-    (db.complaint.count as any).mockResolvedValue(0);
-    (db.complaint.findMany as any).mockResolvedValue([]);
+    mockUserCount.mockResolvedValue(10);
+    mockComplaintCount.mockResolvedValue(0);
+    mockFindMany.mockResolvedValue([]);
 
     const stats = await getPublicStats();
 

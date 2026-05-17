@@ -29,10 +29,11 @@ import { Textarea } from "~/components/ui/textarea";
 import { Switch } from "~/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { Loader2, Save, Key, Bell, User } from "lucide-react";
+import { Loader2, Save, Key, Bell, User as UserIcon } from "lucide-react";
+import type { User } from "@prisma/client";
 
 interface SettingsFormProps {
-  user: any;
+  user: Omit<User, "password">;
 }
 
 export function SettingsForm({ user }: SettingsFormProps) {
@@ -87,7 +88,7 @@ export function SettingsForm({ user }: SettingsFormProps) {
     <Tabs defaultValue="profile" className="space-y-6">
       <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
         <TabsTrigger value="profile" className="flex items-center gap-2">
-          <User className="h-4 w-4" />
+          <UserIcon className="h-4 w-4" />
           Profile
         </TabsTrigger>
         <TabsTrigger value="notifications" className="flex items-center gap-2">

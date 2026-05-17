@@ -10,7 +10,6 @@ import { Textarea } from "~/components/ui/textarea";
 import {
   MapPin,
   Calendar,
-  User,
   Building2,
   AlertCircle,
   CheckCircle,
@@ -27,10 +26,10 @@ import { toast } from "sonner";
 import { createCommentAction } from "~/server/actions/comment.actions";
 import { useRealtimeComplaint } from "~/hooks/use-realtime-complaint";
 import { SlaCountdown } from "~/components/sla-countdown";
-import { cn } from "~/lib/utils";
+import type { ComplaintDetailsWithRelations } from "~/types/complaint";
 
 interface ComplaintUserDetailsProps {
-  complaint: any;
+  complaint: ComplaintDetailsWithRelations;
 }
 
 export default function ComplaintUserDetails({ complaint }: ComplaintUserDetailsProps) {
@@ -194,7 +193,7 @@ export default function ComplaintUserDetails({ complaint }: ComplaintUserDetails
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                {complaint.comments?.map((comment: any) => (
+                {complaint.comments?.map((comment) => (
                   <div
                     key={comment.id}
                     className="bg-muted/30 rounded-lg border p-4 shadow-sm"
@@ -260,7 +259,7 @@ export default function ComplaintUserDetails({ complaint }: ComplaintUserDetails
             </CardHeader>
             <CardContent>
               <div className="relative space-y-4 before:absolute before:left-[11px] before:top-2 before:h-[calc(100%-8px)] before:w-[1px] before:bg-muted">
-                {complaint.activities?.map((activity: any) => (
+                {complaint.activities?.map((activity) => (
                   <div key={activity.id} className="relative pl-7">
                     <div className="absolute left-0 top-1.5 h-[22px] w-[22px] rounded-full border bg-background flex items-center justify-center">
                       <div className="h-1.5 w-1.5 rounded-full bg-primary" />
@@ -287,7 +286,7 @@ export default function ComplaintUserDetails({ complaint }: ComplaintUserDetails
             <CardContent className="text-xs space-y-2 text-muted-foreground">
               <p>1. Our team reviews your complaint.</p>
               <p>2. A staff member is assigned to investigate.</p>
-              <p>3. You'll receive updates here in real-time.</p>
+              <p>3. You&apos;ll receive updates here in real-time.</p>
               <p>4. Once fixed, the status will change to Resolved.</p>
             </CardContent>
           </Card>

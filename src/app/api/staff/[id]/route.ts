@@ -20,7 +20,7 @@ export async function GET(
   try {
     const session = await auth();
 
-    if (!session || session.user.role !== "ADMIN") {
+    if (session?.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -28,7 +28,16 @@ export async function GET(
 
     const user = await db.user.findUnique({
       where: { id: id },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        phone: true,
+        bio: true,
+        createdAt: true,
+        updatedAt: true,
         departments: true,
         _count: {
           select: { assignedComplaints: true },
@@ -43,8 +52,7 @@ export async function GET(
       );
     }
 
-    const { password: _removed, ...userWithoutPassword } = user;
-    return NextResponse.json(userWithoutPassword);
+    return NextResponse.json(user);
   } catch (error) {
     console.error("Error fetching staff member:", error);
     return NextResponse.json(
@@ -62,7 +70,7 @@ export async function PATCH(
   try {
     const session = await auth();
 
-    if (!session || session.user.role !== "ADMIN") {
+    if (session?.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -122,7 +130,16 @@ export async function PATCH(
             },
           }),
         },
-        include: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          isActive: true,
+          phone: true,
+          bio: true,
+          createdAt: true,
+          updatedAt: true,
           departments: true,
           _count: {
             select: { assignedComplaints: true },
@@ -133,8 +150,7 @@ export async function PATCH(
       return user;
     });
 
-    const { password: _removed, ...userWithoutPassword } = updated;
-    return NextResponse.json(userWithoutPassword);
+    return NextResponse.json(updated);
   } catch (error) {
     console.error("Error updating staff member:", error);
     return NextResponse.json(
@@ -152,7 +168,7 @@ export async function DELETE(
   try {
     const session = await auth();
 
-    if (!session || session.user.role !== "ADMIN") {
+    if (session?.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 

@@ -1,4 +1,5 @@
 import { db } from "~/server/db";
+import { Prisma } from "@prisma/client";
 
 // ============================================
 // Duplicate Detection Service
@@ -60,6 +61,9 @@ export async function findSimilarComplaints(
   } = options;
 
   const hasLocation = lat != null && lng != null;
+  const excludeClause = excludeId
+    ? Prisma.sql`AND c.id != ${excludeId}`
+    : Prisma.empty;
 
   // Build the query dynamically based on whether we have coords
   const rows = hasLocation
@@ -87,7 +91,7 @@ export async function findSimilarComplaints(
           c."deletedAt" IS NULL
           AND c.status NOT IN ('RESOLVED', 'REJECTED')
           AND similarity(c.title, ${title}) > ${threshold}
-          ${excludeId ? db.$queryRaw`AND c.id != ${excludeId}` : db.$queryRaw``}
+          ${excludeClause}
           AND c.latitude IS NOT NULL
           AND c.longitude IS NOT NULL
           AND (
@@ -117,7 +121,7 @@ export async function findSimilarComplaints(
           c."deletedAt" IS NULL
           AND c.status NOT IN ('RESOLVED', 'REJECTED')
           AND similarity(c.title, ${title}) > ${threshold}
-          ${excludeId ? db.$queryRaw`AND c.id != ${excludeId}` : db.$queryRaw``}
+          ${excludeClause}
         ORDER BY title_sim DESC
         LIMIT ${limit}
       `;

@@ -6,7 +6,11 @@ import { emailQueue } from "~/server/jobs/queues";
 import { logger } from "~/lib/logger";
 
 export async function GET() {
-  const status: Record<string, any> = {
+  const status: {
+    timestamp: string;
+    uptime: number;
+    services: Record<string, unknown>;
+  } = {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     services: {},

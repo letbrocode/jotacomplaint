@@ -20,7 +20,6 @@ import {
   User,
   Building2,
   AlertCircle,
-  CheckCircle,
   Clock,
   MessageSquare,
   Activity,
@@ -38,9 +37,11 @@ import { useRealtimeComplaint } from "~/hooks/use-realtime-complaint";
 import { SlaCountdown } from "~/components/sla-countdown";
 import { cn } from "~/lib/utils";
 import Link from "next/link";
+import type { ComplaintDetailsWithRelations } from "~/types/complaint";
+import type { Status } from "@prisma/client";
 
 interface ComplaintStaffDetailsProps {
-  complaint: any;
+  complaint: ComplaintDetailsWithRelations;
 }
 
 export default function ComplaintStaffDetails({
@@ -56,7 +57,7 @@ export default function ComplaintStaffDetails({
     onUpdate: () => router.refresh(),
   });
 
-  const handleStatusUpdate = async (newStatus: any) => {
+  const handleStatusUpdate = async (newStatus: Status) => {
     setUpdating(true);
     const result = await updateComplaintAction(complaint.id, { status: newStatus });
     if (result.success) {
@@ -216,7 +217,7 @@ export default function ComplaintStaffDetails({
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                {complaint.comments?.map((comment: any) => (
+                {complaint.comments?.map((comment) => (
                   <div
                     key={comment.id}
                     className={cn(
@@ -326,7 +327,7 @@ export default function ComplaintStaffDetails({
             </CardHeader>
             <CardContent>
               <div className="relative space-y-4 before:absolute before:left-[11px] before:top-2 before:h-[calc(100%-8px)] before:w-[1px] before:bg-muted">
-                {complaint.activities?.map((activity: any) => (
+                {complaint.activities?.map((activity) => (
                   <div key={activity.id} className="relative pl-7">
                     <div className="absolute left-0 top-1.5 h-[22px] w-[22px] rounded-full border bg-background flex items-center justify-center">
                       <div className="h-1.5 w-1.5 rounded-full bg-primary" />
@@ -336,7 +337,7 @@ export default function ComplaintStaffDetails({
                       <span className="text-muted-foreground text-[10px]">
                         {format(new Date(activity.createdAt), "PPp")}
                       </span>
-                      {activity.comment && <p className="mt-1 text-xs text-muted-foreground italic">"{activity.comment}"</p>}
+                      {activity.comment && <p className="mt-1 text-xs text-muted-foreground italic">&quot;{activity.comment}&quot;</p>}
                       <span className="mt-1 text-[10px] font-medium text-muted-foreground">by {activity.user.name ?? "System"}</span>
                     </div>
                   </div>

@@ -16,7 +16,7 @@ const prisma = new PrismaClient();
 function generateNearbyCoord(
   baseLat: number,
   baseLng: number,
-  radiusKm: number = 2,
+  radiusKm = 2,
 ): { lat: number; lng: number } {
   const latOffset = (Math.random() - 0.5) * (radiusKm / 55.5);
   const lngOffset = (Math.random() - 0.5) * (radiusKm / 55.5);
@@ -139,7 +139,7 @@ async function main() {
   // STAFF USERS
   // ============================================
   const staffPassword = await bcrypt.hash("12345678", 10);
-  const staffUsers: { [key: number]: string[] } = {};
+  const staffUsers: Record<number, string[]> = {};
 
   for (const dept of allDepartments) {
     const staff1 = await prisma.user.create({

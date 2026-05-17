@@ -24,7 +24,7 @@ export async function PATCH(
 
   try {
     const { id } = await params;
-    const json = await req.json();
+    const json = (await req.json()) as unknown;
     const data = updateComplaintSchema.parse(json);
 
     const updated = await updateComplaint(
