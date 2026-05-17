@@ -65,10 +65,14 @@ jobs:
           echo "IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/fake" >> .env
           echo "SKIP_ENV_VALIDATION=1" >> .env
 
+      - name: Enable pg_trgm extension
+        run: psql postgresql://user:password@localhost:5432/jotacomplaint_test -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
+
       - name: Prisma Generate & Push
         run: |
           npx prisma generate
           npx prisma db push
+
 
       - name: Lint
         run: npm run lint

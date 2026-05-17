@@ -121,11 +121,10 @@ npm run test:e2e          # requires running dev server or starts its own
 - Rate limiters MUST have `ephemeralCache` + `timeout: 2000` or they'll throw on network failure
 
 ### pg_trgm Extension
-- **Status:** Enabled manually on Neon production DB — NOT in migration SQL
+- **Status:** Fully declarative — enabled via `prisma/migrations/20260517000001_enable_pg_trgm/migration.sql`
+- In CI, a dedicated step runs `psql ... CREATE EXTENSION IF NOT EXISTS pg_trgm` before `prisma db push`
 - The `similarity()` function in `duplicate.service.ts` requires this extension to exist
-- In CI (plain Postgres), the `/api/complaints/similar` route returns `{ similar: [] }` silently (catch block)
-- To enable on a new DB: `CREATE EXTENSION IF NOT EXISTS pg_trgm;`
-- **TODO:** Add a dedicated migration SQL file to make this declarative
+- If you add a fresh DB: run `npx prisma migrate deploy` (runs the extension migration) OR `npx prisma db push` after enabling it via the CI step pattern
 
 ### BullMQ / Redis
 - BullMQ requires TCP Redis (`ioredis`) — Upstash HTTP cannot be used for BullMQ
