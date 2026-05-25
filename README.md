@@ -67,6 +67,7 @@ A production-grade, full-stack municipal service platform for citizen grievance 
 - Pusher Account
 - Resend Account
 - ImageKit Account
+- Docker (optional, for one-command local stack)
 
 ### **2. Installation**
 ```bash
@@ -97,7 +98,28 @@ npm run dev
 npm run worker
 ```
 
+### **5. Dockerized Local Stack (Recommended for parity)**
+```bash
+# Build and start app + worker + postgres + redis
+npm run docker:up
+
+# Seed data inside app container
+npm run docker:seed
+
+# Stream logs
+npm run docker:logs
+
+# Stop everything
+npm run docker:down
+```
+
+Docker compose details:
+- App: `http://localhost:3000`
+- PostgreSQL: `localhost:5432`
+- Redis: `localhost:6379`
+- App startup runs `prisma db push` automatically before `next start`
+
 ## 🔐 Default Test Accounts
 - **Admin**: `admin@municipality.gov` / `12345678`
-- **Staff**: `sanitation.officer@municipality.gov` / `12345678`
-- **User**: `priya.sharma@gmail.com` / `12345678`
+- **Staff**: `water.officer@municipality.gov` / `12345678`
+- **User**: `rajesh.kumar@gmail.com` / `12345678`
