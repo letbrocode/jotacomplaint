@@ -13,26 +13,49 @@ test.describe("Authentication Flow", () => {
     await page.getByLabel(/Password/i).fill("wrongpassword");
     await page.getByRole("button", { name: /Sign In/i }).click();
 
-    // Wait for the submit button to stop loading (request completed)
     await expect(page.getByRole("button", { name: /Sign In/i })).toBeEnabled({ timeout: 10000 });
 
-    // The signin component shows error via Sonner toast OR inline paragraph
-    // Check for either the toast notification or any visible error text
     const errorVisible = await page.getByText(/Invalid credentials/i)
       .or(page.getByText(/CredentialsSignin/i))
       .or(page.locator("[data-sonner-toast]"))
       .isVisible({ timeout: 5000 })
       .catch(() => false);
 
-    // Alternatively, confirm the user is still on the signin page (not redirected)
     await expect(page).toHaveURL(/\/signin/);
-
-    // At minimum, the form is still visible — login did not succeed
     await expect(page.getByRole("button", { name: /Sign In/i })).toBeVisible();
 
-    // Soft assertion: if we can confirm the error text, even better
     if (!errorVisible) {
       console.warn("Error text not found in DOM - may be in a toast portal. Login correctly failed (still on /signin).");
     }
+  });
+
+  test("should allow new user to sign up", async ({ page }) => {
+    const uniqueEmail = `testuser_${Date.now()}@example.com`;
+
+    await page.goto("/signup");
+
+    await page.getByLabel(/Name/i).fill("E2E Test User");
+    await page.getByLabel(/Email/i).fill(uniqueEmail);
+
+    // Fill password — handle both single-field and confirm-password layouts
+    const passwordFields = page.getByLabel(/Password/i);
+    await passwordFields.first().fill("Password123!");
+    const count = await passwordFields.count();
+    if (count > 1) {
+      await passwordFields.nth(1).fill("Password123!");
+    }
+
+    await page.getByRole("button", { name: /Sign Up|Create Account|Register/i }).click();
+
+    // Should redirect to signin or dashboard after successful signup
+    await expect(page).toHaveURL(/\/(signin|dashboard)/, { timeout: 15000 });
+  });
+
+  test("should redirect unauthenticated user away from protected pages", async ({ page }) => {
+    await page.goto("/admin");
+    await expect(page).toHaveURL(/\/(signin|$)/, { timeout: 10000 });
+
+    await page.goto("/dashboard");
+    await expect(page).toHaveURL(/\/(signin|$)/, { timeout: 10000 });
   });
 });
