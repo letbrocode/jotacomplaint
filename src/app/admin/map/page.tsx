@@ -1,6 +1,6 @@
 import { auth } from "~/server/auth";
 import { redirect } from "next/navigation";
-import { db } from "~/server/db";
+import { getComplaintsForMap, getLocations } from "~/server/services/location.service";
 import MapView from "./MapView";
 
 export default async function AdminMapPage() {
@@ -10,54 +10,25 @@ export default async function AdminMapPage() {
     redirect("/signin");
   }
 
-  // Fetch all complaints with locations
-  const complaints = await db.complaint.findMany({
-    where: {
-      latitude: { not: null },
-      longitude: { not: null },
-    },
-    select: {
-      id: true,
-      title: true,
-      category: true,
-      priority: true,
-      status: true,
-      latitude: true,
-      longitude: true,
-      location: true,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+  const [complaints, publicLocations] = await Promise.allSettled([
+    getComplaintsForMap(), // all geolocated complaints for admin
+    getLocations(),
+  ]);
 
-  // Fetch public locations
-  const publicLocations = await db.publicLocation.findMany({
-    where: {
-      isActive: true,
-    },
-    orderBy: {
-      name: "asc",
-    },
-  });
-
-  // Filter out null coordinates and cast to proper types
-  const validComplaints = complaints
+  const validComplaints = (
+    complaints.status === "fulfilled" ? complaints.value : []
+  )
     .filter((c) => c.latitude !== null && c.longitude !== null)
-    .map((c) => ({
-      ...c,
-      latitude: c.latitude!,
-      longitude: c.longitude!,
-    }));
+    .map((c) => ({ ...c, latitude: c.latitude!, longitude: c.longitude! }));
 
-  // Map public locations to match the component's expected type
-  const locationsWithAddress = publicLocations.map((l) => ({
+  const locationsWithAddress = (
+    publicLocations.status === "fulfilled" ? publicLocations.value : []
+  ).map((l) => ({
     id: l.id,
     name: l.name,
     type: l.type,
     latitude: l.latitude,
     longitude: l.longitude,
-    // address: l.address ?? null,
     description: l.description ?? null,
   }));
 

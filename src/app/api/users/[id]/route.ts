@@ -1,107 +1,41 @@
 import { NextResponse } from "next/server";
-import { auth } from "~/server/auth";
-import { db } from "~/server/db";
+import { z } from "zod";
+import { requireRole } from "~/lib/auth-guards";
+import { setUserActiveStatus, deleteUser } from "~/server/services/user.service";
+import { handleApiError } from "~/lib/errors";
 
+const patchUserSchema = z.object({
+  isActive: z.boolean(),
+});
+
+// PATCH - Toggle user active status (ADMIN only)
 export async function PATCH(
-  request: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await auth();
-
-    if (!session?.user || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
+    await requireRole("ADMIN");
     const { id } = await params;
-
-    const body = (await request.json()) as { isActive: boolean | undefined };
-    const isActive = body.isActive;
-
-    if (typeof isActive !== "boolean") {
-      return NextResponse.json(
-        { error: "Invalid isActive value" },
-        { status: 400 },
-      );
-    }
-
-    const user = await db.user.update({
-      where: { id: id },
-      data: {
-        isActive,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        isActive: true,
-        createdAt: true,
-        _count: {
-          select: {
-            complaints: true,
-          },
-        },
-      },
-    });
-
+    const body: unknown = await req.json();
+    const { isActive } = patchUserSchema.parse(body);
+    const user = await setUserActiveStatus(id, isActive);
     return NextResponse.json(user);
-  } catch (error) {
-    console.error("Error updating user:", error);
-    return NextResponse.json(
-      { error: "Failed to update user" },
-      { status: 500 },
-    );
+  } catch (err) {
+    return handleApiError(err);
   }
 }
 
+// DELETE - Delete a user (ADMIN only)
 export async function DELETE(
-  request: Request,
+  _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await auth();
-
-    if (!session?.user || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
+    await requireRole("ADMIN");
     const { id } = await params;
-
-    // Check if user has active complaints
-    const userWithComplaints = await db.user.findUnique({
-      where: { id: id },
-      include: {
-        _count: {
-          select: {
-            complaints: true,
-          },
-        },
-      },
-    });
-
-    if (!userWithComplaints) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    if (userWithComplaints._count.complaints > 0) {
-      return NextResponse.json(
-        {
-          error: `Cannot delete user with ${userWithComplaints._count.complaints} active complaint(s). Please resolve or reassign complaints first.`,
-        },
-        { status: 400 },
-      );
-    }
-
-    await db.user.delete({
-      where: { id: id },
-    });
-
+    await deleteUser(id);
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Error deleting user:", error);
-    return NextResponse.json(
-      { error: "Failed to delete user" },
-      { status: 500 },
-    );
+  } catch (err) {
+    return handleApiError(err);
   }
 }

@@ -122,3 +122,39 @@ export async function getCommentsForComplaint(
     orderBy: { createdAt: "asc" },
   });
 }
+
+export async function updateComment(
+  commentId: string,
+  content: string,
+  userId: string,
+  userRole: Role,
+) {
+  const comment = await db.comment.findUnique({ where: { id: commentId } });
+  if (!comment) throw new NotFoundError("Comment");
+  if (comment.authorId !== userId && userRole !== "ADMIN") {
+    throw new ForbiddenError("You can only edit your own comments");
+  }
+  const trimmed = content.trim();
+  if (!trimmed) throw new Error("Comment content cannot be empty");
+
+  return db.comment.update({
+    where: { id: commentId },
+    data: { content: trimmed },
+    include: {
+      author: { select: { id: true, name: true, role: true } },
+    },
+  });
+}
+
+export async function deleteComment(
+  commentId: string,
+  userId: string,
+  userRole: Role,
+) {
+  const comment = await db.comment.findUnique({ where: { id: commentId } });
+  if (!comment) throw new NotFoundError("Comment");
+  if (comment.authorId !== userId && userRole !== "ADMIN") {
+    throw new ForbiddenError("You can only delete your own comments");
+  }
+  return db.comment.delete({ where: { id: commentId } });
+}

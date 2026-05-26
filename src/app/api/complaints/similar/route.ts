@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "~/server/auth";
 import { findSimilarComplaints } from "~/server/services/duplicate.service";
+import { logger } from "~/lib/logger";
 
 // ============================================
 // GET /api/complaints/similar?title=...&lat=...&lng=...
@@ -35,7 +36,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ similar });
   } catch (err) {
-    console.error("Similar complaints error:", err);
+    logger.error({ err }, "Similar complaints lookup failed");
     return NextResponse.json({ similar: [] });
   }
 }

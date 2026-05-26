@@ -1,69 +1,32 @@
 import { NextResponse } from "next/server";
-import { db } from "~/server/db";
-import { auth } from "~/server/auth";
+import { z } from "zod";
+import { requireRole } from "~/lib/auth-guards";
+import { getLocations, createLocation, createLocationSchema } from "~/server/services/location.service";
+import { handleApiError } from "~/lib/errors";
 import { LocationType } from "@prisma/client";
 
-type CreateLocationInput = {
-  name: string;
-  type: LocationType;
-  latitude: number;
-  longitude: number;
-  description?: string | null;
-};
+const typeSchema = z.nativeEnum(LocationType).optional();
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const type = searchParams.get("type");
-
-    const where = {
-      isActive: true,
-      ...(type && Object.values(LocationType).includes(type as LocationType)
-        ? { type: type as LocationType }
-        : {}),
-    };
-
-    const locations = await db.publicLocation.findMany({
-      where,
-      orderBy: { name: "asc" },
-    });
-
+    const typeParam = searchParams.get("type") ?? undefined;
+    const type = typeSchema.parse(typeParam);
+    const locations = await getLocations(type);
     return NextResponse.json(locations);
-  } catch (error) {
-    console.error("Error fetching locations:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch locations" },
-      { status: 500 },
-    );
+  } catch (err) {
+    return handleApiError(err);
   }
 }
 
 export async function POST(req: Request) {
   try {
-    const session = await auth();
-
-    if (!session?.user || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const body = (await req.json()) as CreateLocationInput;
-
-    const location = await db.publicLocation.create({
-      data: {
-        name: body.name,
-        type: body.type,
-        latitude: body.latitude,
-        longitude: body.longitude,
-        description: body.description ?? null,
-      },
-    });
-
+    await requireRole("ADMIN");
+    const body: unknown = await req.json();
+    const data = createLocationSchema.parse(body);
+    const location = await createLocation(data);
     return NextResponse.json(location, { status: 201 });
-  } catch (error) {
-    console.error("Error creating location:", error);
-    return NextResponse.json(
-      { error: "Failed to create location" },
-      { status: 500 },
-    );
+  } catch (err) {
+    return handleApiError(err);
   }
 }

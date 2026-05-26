@@ -1,36 +1,15 @@
 import { NextResponse } from "next/server";
-import { db } from "~/server/db";
-import { auth } from "~/server/auth";
+import { requireRole } from "~/lib/auth-guards";
+import { getAllDepartments } from "~/server/services/department.service";
+import { handleApiError } from "~/lib/errors";
 
+// GET - List all departments including inactive ones (ADMIN only)
 export async function GET() {
   try {
-    const session = await auth();
-
-    // Only admins can view all departments with stats
-    if (session?.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-    }
-
-    const departments = await db.department.findMany({
-      include: {
-        _count: {
-          select: {
-            complaints: true,
-            staff: true,
-          },
-        },
-      },
-      orderBy: {
-        name: "asc",
-      },
-    });
-
+    await requireRole("ADMIN");
+    const departments = await getAllDepartments(true); // includeInactive = true
     return NextResponse.json(departments);
-  } catch (error) {
-    console.error("Error fetching departments:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch departments" },
-      { status: 500 },
-    );
+  } catch (err) {
+    return handleApiError(err);
   }
 }
