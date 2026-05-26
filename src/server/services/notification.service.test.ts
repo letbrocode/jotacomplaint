@@ -12,7 +12,6 @@ import {
   deleteAllNotifications,
   getUnreadCount,
 } from "~/server/services/notification.service";
-import { db } from "~/server/db";
 
 const {
   mockFindMany,

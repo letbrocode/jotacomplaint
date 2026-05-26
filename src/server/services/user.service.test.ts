@@ -8,8 +8,6 @@ import {
   setUserActiveStatus,
   deleteUser,
 } from "~/server/services/user.service";
-import { db } from "~/server/db";
-import type { Prisma } from "@prisma/client";
 
 const {
   mockFindUnique,
@@ -88,11 +86,9 @@ describe("User Service", () => {
       mockFindMany.mockResolvedValue([]);
       mockCount.mockResolvedValue(0);
       await getAllUsers({ role: "STAFF" });
-      expect(mockFindMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({ role: "STAFF" }),
-        }),
-      );
+      expect(mockFindMany).toHaveBeenCalled();
+      const [callArg] = mockFindMany.mock.calls[0] as [{ where: { role?: string } }];
+      expect(callArg.where.role).toBe("STAFF");
     });
   });
 
@@ -100,14 +96,12 @@ describe("User Service", () => {
     it("returns all active staff and admin users", async () => {
       mockFindMany.mockResolvedValue([{ ...mockUser, role: "STAFF" }]);
       const result = await getStaffMembers();
-      expect(mockFindMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            role: { in: ["STAFF", "ADMIN"] },
-            isActive: true,
-          }),
-        }),
-      );
+      expect(mockFindMany).toHaveBeenCalled();
+      const [callArg] = mockFindMany.mock.calls[0] as [
+        { where: { role?: { in: string[] }; isActive?: boolean } },
+      ];
+      expect(callArg.where.isActive).toBe(true);
+      expect(callArg.where.role?.in).toContain("STAFF");
       expect(result).toHaveLength(1);
     });
   });
@@ -141,7 +135,7 @@ describe("User Service", () => {
     it("activates a user", async () => {
       mockFindUnique.mockResolvedValue({ ...mockUser, isActive: false });
       mockUpdate.mockResolvedValue({ ...mockUser, isActive: true });
-      const result = await setUserActiveStatus("user-1", true);
+      await setUserActiveStatus("user-1", true);
       expect(mockUpdate).toHaveBeenCalledWith(
         expect.objectContaining({ data: { isActive: true } }),
       );

@@ -6,7 +6,6 @@ import {
   updateDepartment,
   deleteDepartment,
 } from "~/server/services/department.service";
-import { db } from "~/server/db";
 
 const {
   mockFindMany,

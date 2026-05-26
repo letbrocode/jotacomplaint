@@ -131,11 +131,9 @@ describe("Comment Service", () => {
     it("filters out internal comments for USER", async () => {
       mockFindMany.mockResolvedValue([mockComment]);
       await getCommentsForComplaint("complaint-1", "USER");
-      expect(mockFindMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({ isInternal: false }),
-        }),
-      );
+      expect(mockFindMany).toHaveBeenCalled();
+      const [callArg] = mockFindMany.mock.calls[0] as [{ where: { isInternal?: boolean } }];
+      expect(callArg.where.isInternal).toBe(false);
     });
   });
 
@@ -144,7 +142,7 @@ describe("Comment Service", () => {
       mockFindUnique.mockResolvedValueOnce(mockComment);
       mockUpdate.mockResolvedValue({ ...mockComment, content: "Updated", author: {} });
 
-      const result = await updateComment("comment-1", "Updated", "user-1", "USER");
+      await updateComment("comment-1", "Updated", "user-1", "USER");
       expect(mockUpdate).toHaveBeenCalledWith(
         expect.objectContaining({ data: { content: "Updated" } }),
       );
