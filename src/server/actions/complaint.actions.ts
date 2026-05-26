@@ -8,8 +8,8 @@ import {
   createComplaint,
   updateComplaint,
   deleteComplaint,
-  findSimilarComplaints,
 } from "~/server/services/complaint.service";
+import { findSimilarComplaints } from "~/server/services/duplicate.service";
 import { triggerDashboardRefresh } from "~/lib/pusher";
 import { invalidateCache, CacheKeys } from "~/lib/cache";
 
@@ -72,7 +72,7 @@ export async function findSimilarComplaintsAction(
 ) {
   try {
     await requireAuth();
-    const results = await findSimilarComplaints(title, lat, lng);
+    const results = await findSimilarComplaints(title, { lat, lng });
     return actionOk(results);
   } catch (err) {
     return actionErr(err);

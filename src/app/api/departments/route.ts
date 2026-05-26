@@ -1,100 +1,31 @@
 import { NextResponse } from "next/server";
-import { db } from "~/server/db";
-import { auth } from "~/server/auth";
+import { requireRole } from "~/lib/auth-guards";
+import { createDepartmentSchema } from "~/schemas/department.schema";
+import { getAllDepartments, createDepartment } from "~/server/services/department.service";
+import { handleApiError, ConflictError } from "~/lib/errors";
 
-type CreateDepartmentBody = {
-  name: string;
-  description?: string | null;
-  email?: string | null;
-  phone?: string | null;
-  isActive?: boolean;
-};
-
-// GET - List active departments (for dropdowns)
+// GET - List active departments (for dropdowns and admin pages)
 export async function GET() {
   try {
-    const departments = await db.department.findMany({
-      where: {
-        isActive: true,
-      },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        email: true,
-        phone: true,
-      },
-      orderBy: {
-        name: "asc",
-      },
-    });
-
+    const departments = await getAllDepartments();
     return NextResponse.json(departments);
-  } catch (error) {
-    console.error("Error fetching departments:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch departments" },
-      { status: 500 },
-    );
+  } catch (err) {
+    return handleApiError(err);
   }
 }
 
-// POST - Create new department
+// POST - Create new department (ADMIN only)
 export async function POST(req: Request) {
   try {
-    const session = await auth();
-
-    if (session?.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-    }
-
-    const data = (await req.json()) as CreateDepartmentBody;
-    const { name, description, email, phone, isActive } = data;
-
-    if (!name || name.trim().length < 3) {
-      return NextResponse.json(
-        { error: "Department name is required (min 3 characters)" },
-        { status: 400 },
-      );
-    }
-
-    const trimmedName = name.trim();
-
-    const existing = await db.department.findUnique({
-      where: { name: trimmedName },
-    });
-
-    if (existing) {
-      return NextResponse.json(
-        { error: "A department with this name already exists" },
-        { status: 409 },
-      );
-    }
-
-    const department = await db.department.create({
-      data: {
-        name: trimmedName,
-        description: description?.trim() ?? null,
-        email: email?.trim() ?? null,
-        phone: phone?.trim() ?? null,
-        isActive: isActive ?? true,
-      },
-      include: {
-        _count: {
-          select: {
-            complaints: true,
-            staff: true,
-          },
-        },
-      },
-    });
-
+    await requireRole("ADMIN");
+    const body: unknown = await req.json();
+    const data = createDepartmentSchema.parse(body);
+    const department = await createDepartment(data);
     return NextResponse.json(department, { status: 201 });
-  } catch (error) {
-    console.error("Error creating department:", error);
-    return NextResponse.json(
-      { error: "Failed to create department" },
-      { status: 500 },
-    );
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("Unique constraint")) {
+      return handleApiError(new ConflictError("A department with this name already exists"));
+    }
+    return handleApiError(err);
   }
 }

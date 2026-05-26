@@ -47,3 +47,14 @@ export async function markAllNotificationsRead(userId: string) {
     data: { isRead: true },
   });
 }
+
+export async function deleteNotification(id: string, userId: string) {
+  const notification = await db.notification.findUnique({ where: { id } });
+  if (!notification) throw new NotFoundError("Notification");
+  if (notification.userId !== userId) throw new NotFoundError("Notification");
+  return db.notification.delete({ where: { id } });
+}
+
+export async function deleteAllNotifications(userId: string) {
+  return db.notification.deleteMany({ where: { userId } });
+}

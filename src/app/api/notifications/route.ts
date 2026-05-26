@@ -1,40 +1,19 @@
 import { NextResponse } from "next/server";
-import { db } from "~/server/db";
-import { auth } from "~/server/auth";
+import { requireAuth } from "~/lib/auth-guards";
+import { getUserNotifications } from "~/server/services/notification.service";
+import { handleApiError } from "~/lib/errors";
 
-// GET - Fetch user's notifications
-export async function GET() {
+// GET - Fetch user's notifications (paginated)
+export async function GET(req: Request) {
   try {
-    const session = await auth();
+    const session = await requireAuth();
+    const { searchParams } = new URL(req.url);
+    const take = Number(searchParams.get("take") ?? 20);
+    const cursor = searchParams.get("cursor") ?? undefined;
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const notifications = await db.notification.findMany({
-      where: {
-        userId: session.user.id,
-      },
-      include: {
-        complaint: {
-          select: {
-            id: true,
-            title: true,
-          },
-        },
-      },
-      orderBy: [
-        { isRead: "asc" }, // Unread first
-        { createdAt: "desc" }, // Then by newest
-      ],
-    });
-
-    return NextResponse.json(notifications);
-  } catch (error) {
-    console.error("Error fetching notifications:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch notifications" },
-      { status: 500 },
-    );
+    const result = await getUserNotifications(session.user.id, { take, cursor });
+    return NextResponse.json(result);
+  } catch (err) {
+    return handleApiError(err);
   }
 }

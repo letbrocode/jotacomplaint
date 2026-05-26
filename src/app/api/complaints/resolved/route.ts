@@ -1,59 +1,24 @@
 import { NextResponse } from "next/server";
-import { db } from "~/server/db";
-import { auth } from "~/server/auth";
+import { requireRole } from "~/lib/auth-guards";
+import { getComplaintsForRole } from "~/server/services/complaint.service";
+import { handleApiError } from "~/lib/errors";
 
-export async function GET() {
+// GET - Fetch resolved complaints (ADMIN and STAFF only)
+export async function GET(req: Request) {
   try {
-    const session = await auth();
+    const session = await requireRole("ADMIN", "STAFF");
+    const { searchParams } = new URL(req.url);
+    const take = Number(searchParams.get("take") ?? 50);
 
-    // Only admins and staff can view resolved complaints
-    if (!session || !["ADMIN", "STAFF"].includes(session.user.role)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-    }
-
-    const complaints = await db.complaint.findMany({
-      where: {
-        status: "RESOLVED",
-        deletedAt: null,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        department: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        assignedTo: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        _count: {
-          select: {
-            comments: true,
-          },
-        },
-      },
-      orderBy: {
-        resolvedAt: "desc", // Most recently resolved first
-      },
-    });
-
-    return NextResponse.json(complaints);
-  } catch (error) {
-    console.error("Error fetching resolved complaints:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch resolved complaints" },
-      { status: 500 },
+    const { data } = await getComplaintsForRole(
+      session.user.id,
+      session.user.role,
+      { status: "RESOLVED" },
+      { take },
     );
+
+    return NextResponse.json(data);
+  } catch (err) {
+    return handleApiError(err);
   }
 }

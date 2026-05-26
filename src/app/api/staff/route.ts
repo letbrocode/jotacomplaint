@@ -1,138 +1,46 @@
 import { NextResponse } from "next/server";
-import { db } from "~/server/db";
-import { auth } from "~/server/auth";
-import bcrypt from "bcryptjs";
+import { z } from "zod";
+import { requireAuth, requireRole } from "~/lib/auth-guards";
+import { getStaffMembers, createStaffMember } from "~/server/services/user.service";
+import { handleApiError } from "~/lib/errors";
 import type { Role } from "@prisma/client";
 
-// Types for incoming payload
-interface CreateStaffPayload {
-  name: string;
-  email: string;
-  password: string;
-  role?: Role; // ADMIN | STAFF
-  isActive?: boolean;
-  departmentIds?: number[];
-}
+const createStaffSchema = z.object({
+  name: z.string().min(2, "Name is required (min 2 characters)").trim(),
+  email: z.string().email("Valid email required"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  role: z.enum(["ADMIN", "STAFF"]).optional(),
+  isActive: z.boolean().optional(),
+  departmentIds: z.array(z.number().int().positive()).optional(),
+});
 
-// GET - List staff
-export async function GET() {
+// GET - List staff members
+export async function GET(req: Request) {
   try {
-    const staff = await db.user.findMany({
-      where: {
-        role: { in: ["ADMIN", "STAFF"] },
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-      },
-      orderBy: {
-        name: "asc",
-      },
-    });
-
+    await requireAuth();
+    const { searchParams } = new URL(req.url);
+    const departmentId = searchParams.get("departmentId")
+      ? Number(searchParams.get("departmentId"))
+      : undefined;
+    const staff = await getStaffMembers(departmentId);
     return NextResponse.json(staff);
-  } catch (error) {
-    console.error("Error fetching staff:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch staff" },
-      { status: 500 },
-    );
+  } catch (err) {
+    return handleApiError(err);
   }
 }
 
-// POST - Create staff
+// POST - Create staff member (ADMIN only)
 export async function POST(req: Request) {
   try {
-    const session = await auth();
-
-    if (session?.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-    }
-
-    const data = (await req.json()) as CreateStaffPayload;
-
-    const {
-      name,
-      email,
-      password,
-      role,
-      isActive = true,
-      departmentIds = [],
-    } = data;
-
-    // Validation
-    if (!name || name.trim().length < 2) {
-      return NextResponse.json(
-        { error: "Name is required (min 2 characters)" },
-        { status: 400 },
-      );
-    }
-
-    if (!email?.includes("@")) {
-      return NextResponse.json(
-        { error: "Valid email required" },
-        { status: 400 },
-      );
-    }
-
-    if (!password || password.length < 8) {
-      return NextResponse.json(
-        { error: "Password must be at least 8 characters" },
-        { status: 400 },
-      );
-    }
-
-    // Check if already exists
-    const normalizedEmail = email.trim().toLowerCase();
-    const existing = await db.user.findUnique({
-      where: { email: normalizedEmail },
+    await requireRole("ADMIN");
+    const body: unknown = await req.json();
+    const data = createStaffSchema.parse(body);
+    const user = await createStaffMember({
+      ...data,
+      role: data.role as Role | undefined,
     });
-
-    if (existing) {
-      return NextResponse.json(
-        { error: "A user with this email already exists" },
-        { status: 409 },
-      );
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create user
-    const user = await db.user.create({
-      data: {
-        name: name.trim(),
-        email: normalizedEmail,
-        password: hashedPassword,
-        role: role ?? "STAFF",
-        isActive,
-        ...(departmentIds?.length > 0 && {
-          departments: {
-            connect: departmentIds.map((id) => ({ id })),
-          },
-        }),
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        isActive: true,
-        departments: true,
-        _count: {
-          select: { assignedComplaints: true },
-        },
-      },
-    });
-
     return NextResponse.json(user, { status: 201 });
-  } catch (error) {
-    console.error("Error creating staff:", error);
-    return NextResponse.json(
-      { error: "Failed to create staff member" },
-      { status: 500 },
-    );
+  } catch (err) {
+    return handleApiError(err);
   }
 }

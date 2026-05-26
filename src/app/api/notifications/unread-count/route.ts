@@ -1,25 +1,19 @@
 import { NextResponse } from "next/server";
-import { db } from "~/server/db";
 import { auth } from "~/server/auth";
+import { getUnreadCount } from "~/server/services/notification.service";
 
+// GET - Get unread notification count
+// Returns { count: 0 } on any error or unauthenticated state — never throws,
+// since this is polled frequently by the client.
 export async function GET() {
   try {
     const session = await auth();
-
     if (!session?.user?.id) {
       return NextResponse.json({ count: 0 });
     }
-
-    const count = await db.notification.count({
-      where: {
-        userId: session.user.id,
-        isRead: false,
-      },
-    });
-
+    const count = await getUnreadCount(session.user.id);
     return NextResponse.json({ count });
-  } catch (error) {
-    console.error("Error fetching unread count:", error);
+  } catch {
     return NextResponse.json({ count: 0 });
   }
 }

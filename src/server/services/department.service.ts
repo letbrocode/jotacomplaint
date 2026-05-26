@@ -86,3 +86,24 @@ export async function removeStaffFromDepartment(deptId: number, userId: string) 
     data: { staff: { disconnect: { id: userId } } },
   });
 }
+
+export async function deleteDepartment(id: number) {
+  const dept = await db.department.findUnique({
+    where: { id },
+    include: { _count: { select: { complaints: true, staff: true } } },
+  });
+  if (!dept) throw new NotFoundError("Department");
+
+  if (dept._count.complaints > 0) {
+    throw new Error(
+      `Cannot delete department with ${dept._count.complaints} active complaint(s). Reassign or resolve them first.`,
+    );
+  }
+  if (dept._count.staff > 0) {
+    throw new Error(
+      `Cannot delete department with ${dept._count.staff} staff member(s). Reassign them first.`,
+    );
+  }
+
+  await db.department.delete({ where: { id } });
+}

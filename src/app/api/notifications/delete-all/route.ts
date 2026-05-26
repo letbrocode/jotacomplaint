@@ -1,28 +1,15 @@
 import { NextResponse } from "next/server";
-import { db } from "~/server/db";
-import { auth } from "~/server/auth";
+import { requireAuth } from "~/lib/auth-guards";
+import { deleteAllNotifications } from "~/server/services/notification.service";
+import { handleApiError } from "~/lib/errors";
 
-// DELETE - Delete all notifications
+// DELETE - Delete all user's notifications
 export async function DELETE() {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    await db.notification.deleteMany({
-      where: {
-        userId: session.user.id,
-      },
-    });
-
+    const session = await requireAuth();
+    await deleteAllNotifications(session.user.id);
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Error deleting all notifications:", error);
-    return NextResponse.json(
-      { error: "Failed to delete all notifications" },
-      { status: 500 },
-    );
+  } catch (err) {
+    return handleApiError(err);
   }
 }

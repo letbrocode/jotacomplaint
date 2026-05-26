@@ -1,5 +1,3 @@
-"use server";
-
 import { redirect } from "next/navigation";
 import React from "react";
 import Signup from "~/components/ui/signup";

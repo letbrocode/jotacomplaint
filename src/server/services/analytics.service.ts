@@ -14,41 +14,47 @@ export async function getDashboardStats() {
 }
 
 async function _getDashboardStats() {
-  const [total, pending, inProgress, resolved, rejected, escalated] =
-    await Promise.all([
-      db.complaint.count({ where: { deletedAt: null } }),
-      db.complaint.count({ where: { deletedAt: null, status: "PENDING" } }),
-      db.complaint.count({ where: { deletedAt: null, status: "IN_PROGRESS" } }),
-      db.complaint.count({ where: { deletedAt: null, status: "RESOLVED" } }),
-      db.complaint.count({ where: { deletedAt: null, status: "REJECTED" } }),
-      db.complaint.count({ where: { deletedAt: null, status: "ESCALATED" } }),
-    ]);
+  const settled = await Promise.allSettled([
+    db.complaint.count({ where: { deletedAt: null } }),
+    db.complaint.count({ where: { deletedAt: null, status: "PENDING" } }),
+    db.complaint.count({ where: { deletedAt: null, status: "IN_PROGRESS" } }),
+    db.complaint.count({ where: { deletedAt: null, status: "RESOLVED" } }),
+    db.complaint.count({ where: { deletedAt: null, status: "REJECTED" } }),
+    db.complaint.count({ where: { deletedAt: null, status: "ESCALATED" } }),
+  ]);
 
-  const completionRate = total > 0 ? (resolved / total) * 100 : 0;
+  const [total, pending, inProgress, resolved, rejected, escalated] = settled.map(
+    (r) => (r.status === "fulfilled" ? r.value : 0),
+  );
+
+  const completionRate = (total ?? 0) > 0 ? ((resolved ?? 0) / (total ?? 1)) * 100 : 0;
 
   // Week-over-week
   const now = new Date();
   const weekAgo = subDays(now, 7);
   const twoWeeksAgo = subDays(now, 14);
 
-  const [thisWeek, lastWeek] = await Promise.all([
+  const [thisWeekResult, lastWeekResult] = await Promise.allSettled([
     db.complaint.count({ where: { deletedAt: null, createdAt: { gte: weekAgo } } }),
     db.complaint.count({
       where: { deletedAt: null, createdAt: { gte: twoWeeksAgo, lt: weekAgo } },
     }),
   ]);
 
+  const thisWeek = thisWeekResult.status === "fulfilled" ? thisWeekResult.value : 0;
+  const lastWeek = lastWeekResult.status === "fulfilled" ? lastWeekResult.value : 0;
+
   const trend =
     lastWeek === 0 ? "neutral" : thisWeek > lastWeek ? "up" : thisWeek < lastWeek ? "down" : "neutral";
   const trendPct = lastWeek === 0 ? 0 : Math.abs(((thisWeek - lastWeek) / lastWeek) * 100);
 
   return {
-    total,
-    pending,
-    inProgress,
-    resolved,
-    rejected,
-    escalated,
+    total: total ?? 0,
+    pending: pending ?? 0,
+    inProgress: inProgress ?? 0,
+    resolved: resolved ?? 0,
+    rejected: rejected ?? 0,
+    escalated: escalated ?? 0,
     completionRate,
     thisWeek,
     trend,

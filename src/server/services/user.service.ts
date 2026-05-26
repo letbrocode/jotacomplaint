@@ -1,5 +1,5 @@
 import { db } from "~/server/db";
-import { NotFoundError } from "~/lib/errors";
+import { NotFoundError, ConflictError } from "~/lib/errors";
 import bcrypt from "bcryptjs";
 import type { UpdateProfileInput } from "~/schemas/user.schema";
 import type { Role } from "@prisma/client";
@@ -121,4 +121,45 @@ export async function deactivateUser(id: string) {
   const user = await db.user.findUnique({ where: { id } });
   if (!user) throw new NotFoundError("User");
   return db.user.update({ where: { id }, data: { isActive: false } });
+}
+
+export async function createStaffMember(data: {
+  name: string;
+  email: string;
+  password: string;
+  role?: Role;
+  isActive?: boolean;
+  departmentIds?: number[];
+}) {
+  const { name, email, password, role, isActive = true, departmentIds = [] } = data;
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const existing = await db.user.findUnique({ where: { email: normalizedEmail } });
+  if (existing) {
+    throw new ConflictError("A user with this email already exists");
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  return db.user.create({
+    data: {
+      name: name.trim(),
+      email: normalizedEmail,
+      password: hashedPassword,
+      role: role ?? "STAFF",
+      isActive,
+      ...(departmentIds.length > 0 && {
+        departments: { connect: departmentIds.map((id) => ({ id })) },
+      }),
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      isActive: true,
+      departments: true,
+      _count: { select: { assignedComplaints: true } },
+    },
+  });
 }

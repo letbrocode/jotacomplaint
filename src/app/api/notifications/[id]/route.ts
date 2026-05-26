@@ -1,47 +1,19 @@
 import { NextResponse } from "next/server";
-import { db } from "~/server/db";
-import { auth } from "~/server/auth";
+import { requireAuth } from "~/lib/auth-guards";
+import { deleteNotification } from "~/server/services/notification.service";
+import { handleApiError } from "~/lib/errors";
 
 // DELETE - Delete a notification
 export async function DELETE(
-  req: Request,
+  _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
+    const session = await requireAuth();
     const { id } = await params;
-
-    // Check if notification exists and belongs to user
-    const notification = await db.notification.findUnique({
-      where: { id: id },
-    });
-
-    if (!notification) {
-      return NextResponse.json(
-        { error: "Notification not found" },
-        { status: 404 },
-      );
-    }
-
-    if (notification.userId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    await db.notification.delete({
-      where: { id: id },
-    });
-
+    await deleteNotification(id, session.user.id);
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Error deleting notification:", error);
-    return NextResponse.json(
-      { error: "Failed to delete notification" },
-      { status: 500 },
-    );
+  } catch (err) {
+    return handleApiError(err);
   }
 }
