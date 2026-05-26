@@ -67,7 +67,10 @@ export default function UserDashboard() {
         throw new Error("Failed to fetch complaints");
       }
 
-      const data = (await res.json()) as ComplaintWithRelations[];
+      const { data } = (await res.json()) as {
+        data: ComplaintWithRelations[];
+        total: number;
+      };
       setComplaints(data);
       setLastUpdated(new Date());
     } catch (err) {

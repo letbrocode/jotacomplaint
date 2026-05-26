@@ -81,7 +81,10 @@ export default function AdminDashboardPage() {
         throw new Error(`Failed to fetch complaints: ${res.status}`);
       }
 
-      const data = (await res.json()) as ComplaintWithRelations[];
+      const { data } = (await res.json()) as {
+        data: ComplaintWithRelations[];
+        total: number;
+      };
       setComplaints(data);
       setLastUpdated(new Date());
     } catch (error) {

@@ -35,7 +35,7 @@ export default function UpdateStatusForm({
     setIsSubmitting(true);
 
     try {
-      const res = await fetch(`/api/complaints/${complaintId}/status`, {
+      const res = await fetch(`/api/complaints/${complaintId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
