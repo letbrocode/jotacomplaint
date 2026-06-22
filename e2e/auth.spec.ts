@@ -34,20 +34,13 @@ test.describe("Authentication Flow", () => {
 
     await page.goto("/signup");
 
-    await page.getByLabel(/Name/i).fill("E2E Test User");
+    // The signup form collects Email + Password only (no Name field)
     await page.getByLabel(/Email/i).fill(uniqueEmail);
-
-    // Fill password — handle both single-field and confirm-password layouts
-    const passwordFields = page.getByLabel(/Password/i);
-    await passwordFields.first().fill("Password123!");
-    const count = await passwordFields.count();
-    if (count > 1) {
-      await passwordFields.nth(1).fill("Password123!");
-    }
+    await page.getByLabel(/Password/i).fill("Password123!");
 
     await page.getByRole("button", { name: /Sign Up|Create Account|Register/i }).click();
 
-    // Should redirect to signin or dashboard after successful signup
+    // Should redirect to signin after successful signup
     await expect(page).toHaveURL(/\/(signin|dashboard)/, { timeout: 15000 });
   });
 

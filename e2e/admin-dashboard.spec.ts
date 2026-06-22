@@ -23,7 +23,11 @@ test.describe("Admin Dashboard", () => {
     const { context, page } = await loginAs(browser, E2E_USERS.admin, /\/admin/);
 
     // Stats cards present
-    await expect(page.getByText(/Total Complaints/i)).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Total Complaints", exact: true })
+        .or(page.locator('[data-slot="card-title"]').filter({ hasText: /^Total Complaints$/ }))
+        .first()
+    ).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(/Pending/i).first()).toBeVisible();
     await expect(page.getByText(/In Progress/i).first()).toBeVisible();
     await expect(page.getByText(/Resolved/i).first()).toBeVisible();
@@ -93,14 +97,14 @@ test.describe("Admin Dashboard", () => {
     await page.goto("/admin/complaints");
     await expect(page.getByRole("heading", { name: /Complaints/i })).toBeVisible({ timeout: 10000 });
 
-    // Click the first complaint item
-    const firstComplaint = page.locator('[data-testid="complaint-item"]').first();
-    if (await firstComplaint.isVisible({ timeout: 5000 }).catch(() => false)) {
-      const href = await firstComplaint.getAttribute("href");
+    // Click the "View Details" link inside the first complaint card
+    const firstDetailLink = page.locator('[data-testid="complaint-view-details"]').first();
+    if (await firstDetailLink.isVisible({ timeout: 5000 }).catch(() => false)) {
+      const href = await firstDetailLink.getAttribute("href");
       if (href) {
         await page.goto(href);
       } else {
-        await firstComplaint.click();
+        await firstDetailLink.click();
       }
       await expect(page).toHaveURL(/\/admin\/complaints\/.+/, { timeout: 10000 });
     }
