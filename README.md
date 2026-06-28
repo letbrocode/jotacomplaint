@@ -29,7 +29,7 @@ A production-grade, full-stack municipal service platform for citizen grievance 
 ## ✨ Features
 
 ### **For Citizens**
-- **Smarter Submission**: Report issues with GPS-tagged locations (Leaflet) and photo evidence (ImageKit).
+- **Smarter Submission**: Report issues with GPS-tagged locations (Leaflet) and photo evidence (AWS S3).
 - **Real-time Tracking**: Live status updates and internal/public comment threads.
 - **Instant Notifications**: Browser and email alerts when your case is assigned or resolved.
 
@@ -54,7 +54,7 @@ A production-grade, full-stack municipal service platform for citizen grievance 
 | **Real-time** | Pusher Channels |
 | **Email** | Resend + React Email templates |
 | **Maps** | Leaflet.js (OpenStreetMap) |
-| **Images** | ImageKit.io CDN |
+| **Images** | AWS S3 (private, presigned URLs) |
 
 ---
 
@@ -66,7 +66,7 @@ A production-grade, full-stack municipal service platform for citizen grievance 
 - Upstash Redis (or local Redis)
 - Pusher Account
 - Resend Account
-- ImageKit Account
+- AWS Account (for S3 uploads)
 - Docker (optional, for one-command local stack)
 
 ### **2. Installation**
@@ -83,7 +83,7 @@ Copy `.env.example` to `.env` and fill in:
 - `REDIS_URL` (Upstash HTTP) and `REDIS_TCP_URL` (for BullMQ)
 - `PUSHER_APP_ID`, `NEXT_PUBLIC_PUSHER_KEY`, etc.
 - `RESEND_API_KEY`
-- `IMAGEKIT_PUBLIC_KEY`, `IMAGEKIT_PRIVATE_KEY`, etc.
+- `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_UPLOAD_BUCKET`
 
 ### **4. Database & Workers**
 ```bash
