@@ -1,7 +1,6 @@
 import { auth } from "~/server/auth";
 import { redirect } from "next/navigation";
 import { getComplaintsForRole } from "~/server/services/complaint.service";
-import { getAllDepartments } from "~/server/services/department.service";
 import { ComplaintsFilters } from "~/components/complaints-filters";
 import ComplaintCard from "~/components/complaint-card";
 import { type Status, Priority, ComplaintCategory } from "@prisma/client";
@@ -10,7 +9,14 @@ import { RefreshCw, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Skeleton } from "~/components/ui/skeleton";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
+import { createComplaintReadUrlMap } from "~/server/storage/s3.service";
 
 export const dynamic = "force-dynamic";
 
@@ -34,9 +40,7 @@ export default async function StaffComplaintsPage({ searchParams }: PageProps) {
   const params = await searchParams;
 
   // Default to PENDING and IN_PROGRESS if no status filter provided for staff
-  const statusFilter = params.status
-    ? (params.status as Status)
-    : undefined;
+  const statusFilter = params.status ? (params.status as Status) : undefined;
 
   const filters = {
     status: statusFilter,
@@ -52,12 +56,15 @@ export default async function StaffComplaintsPage({ searchParams }: PageProps) {
     assignedToId: session.user.id, // Only show assigned to them
   };
 
-  const [complaintsData] = await Promise.all([
-    getComplaintsForRole(session.user.id, "STAFF", filters, { take: 50 }),
-    getAllDepartments(),
-  ]);
+  const complaintsData = await getComplaintsForRole(
+    session.user.id,
+    "STAFF",
+    filters,
+    { take: 50 },
+  );
 
   const { data: complaints, total } = complaintsData;
+  const photoUrls = await createComplaintReadUrlMap(complaints);
 
   const stats = {
     total: total,
@@ -123,7 +130,13 @@ export default async function StaffComplaintsPage({ searchParams }: PageProps) {
       <Suspense fallback={<Skeleton className="h-48 w-full" />}>
         <ComplaintsFilters
           showDepartmentFilter={false}
-          statusOptions={["PENDING", "IN_PROGRESS", "RESOLVED", "REJECTED", "ESCALATED"]}
+          statusOptions={[
+            "PENDING",
+            "IN_PROGRESS",
+            "RESOLVED",
+            "REJECTED",
+            "ESCALATED",
+          ]}
         />
       </Suspense>
 
@@ -142,7 +155,8 @@ export default async function StaffComplaintsPage({ searchParams }: PageProps) {
               <AlertCircle className="text-muted-foreground mb-4 h-12 w-12" />
               <h3 className="text-lg font-semibold">No Complaints Found</h3>
               <p className="text-muted-foreground text-sm">
-                Try adjusting your filters or check back later for new assignments
+                Try adjusting your filters or check back later for new
+                assignments
               </p>
             </CardContent>
           </Card>
@@ -153,6 +167,7 @@ export default async function StaffComplaintsPage({ searchParams }: PageProps) {
               complaint={complaint}
               detailHref={`/staff/complaints/${complaint.id}`}
               canUpdateStatus
+              photoUrl={photoUrls[complaint.id]}
             />
           ))
         )}

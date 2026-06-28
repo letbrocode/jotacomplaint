@@ -3,50 +3,82 @@
 import React, { useRef, useState } from "react";
 import { RiImageAddLine } from "react-icons/ri";
 import {
-  ImageKitAbortError,
-  ImageKitInvalidRequestError,
-  ImageKitServerError,
-  ImageKitUploadNetworkError,
-  upload,
-} from "@imagekit/next";
+  allowedImageMimeTypes,
+  MAX_UPLOAD_FILE_SIZE,
+} from "~/schemas/upload.schema";
 
-type UploadAuth = {
-  signature: string;
-  expire: number;
-  token: string;
-  publicKey: string;
+type PresignResponse = {
+  objectKey: string;
+  uploadUrl: string;
+  headers: Record<string, string>;
 };
-
-type UploadResponse = {
-  url: string;
-};
-
-const MAX_FILE_SIZE = 10_000_000; // 10MB
 
 const Dropzone = ({
   onUploadComplete,
 }: {
-  onUploadComplete: (url?: string) => void;
+  onUploadComplete: (upload?: {
+    objectKey: string;
+    previewUrl: string;
+  }) => void;
 }) => {
   const [progress, setProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const abortControllerRef = useRef(new AbortController());
 
-  const authenticator = async (): Promise<UploadAuth> => {
-    const response = await fetch("/api/upload-auth");
+  const createUploadUrl = async (file: File): Promise<PresignResponse> => {
+    const response = await fetch("/api/uploads/presign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contentType: file.type,
+        fileSize: file.size,
+      }),
+    });
+
     if (!response.ok) {
-      throw new Error(`Auth failed: ${await response.text()}`);
+      throw new Error(`Upload request failed: ${await response.text()}`);
     }
-    return (await response.json()) as UploadAuth;
+
+    return (await response.json()) as PresignResponse;
   };
 
+  const uploadFile = (file: File, presign: PresignResponse) =>
+    new Promise<void>((resolve, reject) => {
+      const request = new XMLHttpRequest();
+
+      request.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          setProgress((event.loaded / event.total) * 100);
+        }
+      };
+
+      request.onload = () => {
+        if (request.status >= 200 && request.status < 300) {
+          resolve();
+        } else {
+          reject(new Error(`S3 upload failed with status ${request.status}`));
+        }
+      };
+
+      request.onerror = () => reject(new Error("S3 upload failed"));
+      request.open("PUT", presign.uploadUrl);
+      Object.entries(presign.headers).forEach(([key, value]) => {
+        request.setRequestHeader(key, value);
+      });
+      request.send(file);
+    });
+
+  const isAllowedMimeType = (
+    contentType: string,
+  ): contentType is (typeof allowedImageMimeTypes)[number] =>
+    allowedImageMimeTypes.some((allowedType) => allowedType === contentType);
+
   const validateFile = (file: File): string | null => {
-    if (!file.type.startsWith("image/")) {
-      return "Only image files are allowed.";
+    if (!isAllowedMimeType(file.type)) {
+      return "Only JPEG, PNG, and WebP images are allowed.";
     }
-    if (file.size > MAX_FILE_SIZE) {
+    if (file.size > MAX_UPLOAD_FILE_SIZE) {
       return "File too large. Maximum size is 10MB.";
     }
     return null;
@@ -67,32 +99,14 @@ const Dropzone = ({
     setProgress(0);
 
     try {
-      const { signature, expire, token, publicKey } = await authenticator();
-
-      const uploadResponse = (await upload({
-        file,
-        fileName: file.name,
-        folder: "/complaints",
-        token,
-        expire,
-        signature,
-        publicKey,
-        onProgress: (evt: ProgressEvent) =>
-          setProgress((evt.loaded / evt.total) * 100),
-        abortSignal: abortControllerRef.current.signal,
-      })) as UploadResponse;
-
-      onUploadComplete(uploadResponse.url);
+      const presign = await createUploadUrl(file);
+      await uploadFile(file, presign);
+      onUploadComplete({
+        objectKey: presign.objectKey,
+        previewUrl: URL.createObjectURL(file),
+      });
     } catch (error) {
-      if (error instanceof ImageKitAbortError)
-        console.error("Upload aborted:", error.reason);
-      else if (error instanceof ImageKitInvalidRequestError)
-        console.error("Invalid request:", error.message);
-      else if (error instanceof ImageKitUploadNetworkError)
-        console.error("Network error:", error.message);
-      else if (error instanceof ImageKitServerError)
-        console.error("Server error:", error.message);
-      else console.error("Upload error:", error);
+      console.error("Upload error:", error);
     } finally {
       setUploading(false);
     }

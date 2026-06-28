@@ -2,6 +2,7 @@ import { auth } from "~/server/auth";
 import { redirect, notFound } from "next/navigation";
 import { getComplaintById } from "~/server/services/complaint.service";
 import ComplaintUserDetails from "./ComplaintUserDetails";
+import { createComplaintReadUrl } from "~/server/storage/s3.service";
 
 export const dynamic = "force-dynamic";
 
@@ -19,15 +20,23 @@ export default async function UserComplaintDetailsPage({ params }: PageProps) {
   const { id } = await params;
 
   try {
-    const complaint = await getComplaintById(id, session.user.id, session.user.role);
+    const complaint = await getComplaintById(
+      id,
+      session.user.id,
+      session.user.role,
+    );
 
     if (!complaint) {
       notFound();
     }
 
+    const photoUrl = await createComplaintReadUrl(complaint.photoKey).catch(
+      () => null,
+    );
+
     return (
       <div className="container mx-auto px-4 py-8">
-        <ComplaintUserDetails complaint={complaint} />
+        <ComplaintUserDetails complaint={complaint} photoUrl={photoUrl} />
       </div>
     );
   } catch (err) {

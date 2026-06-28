@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,13 +27,23 @@ import {
   FormMessage,
 } from "~/components/ui/form";
 import { toast } from "sonner";
-import { Loader2, MapPin, Camera, ArrowLeft, CheckCircle, AlertTriangle, X, ExternalLink } from "lucide-react";
+import {
+  Loader2,
+  MapPin,
+  Camera,
+  ArrowLeft,
+  CheckCircle,
+  AlertTriangle,
+  X,
+  ExternalLink,
+} from "lucide-react";
 import Dropzone from "~/components/dropzone";
 import Link from "next/link";
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import type { ComplaintWithRelations } from "~/types/complaint";
+import { complaintPhotoKeySchema } from "~/schemas/upload.schema";
 
 const LocationPickerMap = dynamic(
   () => import("~/components/maps/LocationPickerMap"),
@@ -55,7 +65,7 @@ const complaintSchema = z.object({
   location: z.string().max(200).optional().or(z.literal("")),
   latitude: z.string().optional().or(z.literal("")),
   longitude: z.string().optional().or(z.literal("")),
-  photoUrl: z.string().url().optional().or(z.literal("")),
+  photoKey: complaintPhotoKeySchema.optional().or(z.literal("")),
 });
 
 type ComplaintFormValues = z.infer<typeof complaintSchema>;
@@ -74,10 +84,21 @@ type SimilarComplaint = {
 export default function RegisterComplaint() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [photoUrl, setPhotoUrl] = useState("");
+  const [photoKey, setPhotoKey] = useState("");
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState("");
   const [isGettingLocation, setIsGettingLocation] = useState(false);
-  const [similarComplaints, setSimilarComplaints] = useState<SimilarComplaint[]>([]);
+  const [similarComplaints, setSimilarComplaints] = useState<
+    SimilarComplaint[]
+  >([]);
   const [showSimilar, setShowSimilar] = useState(true);
+
+  useEffect(() => {
+    return () => {
+      if (photoPreviewUrl) {
+        URL.revokeObjectURL(photoPreviewUrl);
+      }
+    };
+  }, [photoPreviewUrl]);
 
   const form = useForm<ComplaintFormValues>({
     resolver: zodResolver(complaintSchema),
@@ -89,7 +110,7 @@ export default function RegisterComplaint() {
       location: "",
       latitude: "",
       longitude: "",
-      photoUrl: "",
+      photoKey: "",
     },
   });
 
@@ -125,7 +146,10 @@ export default function RegisterComplaint() {
   // Debounced duplicate check — fires 600ms after user stops typing
   const checkSimilar = useCallback(
     async (title: string, lat?: string, lng?: string) => {
-      if (title.length < 5) { setSimilarComplaints([]); return; }
+      if (title.length < 5) {
+        setSimilarComplaints([]);
+        return;
+      }
       try {
         const params = new URLSearchParams({ title });
         if (lat) params.set("lat", lat);
@@ -134,7 +158,9 @@ export default function RegisterComplaint() {
         const data = (await res.json()) as { similar: SimilarComplaint[] };
         setSimilarComplaints(data.similar ?? []);
         setShowSimilar(true);
-      } catch { /* silent */ }
+      } catch {
+        /* silent */
+      }
     },
     [],
   );
@@ -151,7 +177,7 @@ export default function RegisterComplaint() {
         location: data.location ?? null,
         latitude: data.latitude ? parseFloat(data.latitude) : null,
         longitude: data.longitude ? parseFloat(data.longitude) : null,
-        photoUrl: photoUrl || null,
+        photoKey: photoKey || null,
       };
 
       const res = await fetch("/api/complaints", {
@@ -275,19 +301,34 @@ export default function RegisterComplaint() {
                     </button>
                   </div>
                   <p className="mb-3 text-xs text-orange-700 dark:text-orange-400">
-                    Check these before submitting — you may be able to track an existing complaint instead.
+                    Check these before submitting — you may be able to track an
+                    existing complaint instead.
                   </p>
                   <ul className="space-y-2">
                     {similarComplaints.map((c) => (
-                      <li key={c.id} className="flex items-start justify-between rounded-md bg-white/60 p-2 dark:bg-white/5">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{c.title}</p>
+                      <li
+                        key={c.id}
+                        className="flex items-start justify-between rounded-md bg-white/60 p-2 dark:bg-white/5"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">
+                            {c.title}
+                          </p>
                           <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-orange-700/70 dark:text-orange-400/70">
-                            <Badge variant="outline" className="h-4 px-1 text-[10px]">{c.status.replace("_", " ")}</Badge>
+                            <Badge
+                              variant="outline"
+                              className="h-4 px-1 text-[10px]"
+                            >
+                              {c.status.replace("_", " ")}
+                            </Badge>
                             <span>{c.category}</span>
                             {c.location && <span>· {c.location}</span>}
-                            {c.distanceKm != null && <span>· {c.distanceKm} km away</span>}
-                            <span>· {Math.round(c.titleSimilarity * 100)}% match</span>
+                            {c.distanceKm != null && (
+                              <span>· {c.distanceKm} km away</span>
+                            )}
+                            <span>
+                              · {Math.round(c.titleSimilarity * 100)}% match
+                            </span>
                           </div>
                         </div>
                         <Link
@@ -510,18 +551,22 @@ export default function RegisterComplaint() {
                 </div>
 
                 <Dropzone
-                  onUploadComplete={(url) => {
-                    setPhotoUrl(url ?? "");
-                    form.setValue("photoUrl", url ?? "");
+                  onUploadComplete={(upload) => {
+                    setPhotoKey(upload?.objectKey ?? "");
+                    setPhotoPreviewUrl(upload?.previewUrl ?? "");
+                    form.setValue("photoKey", upload?.objectKey ?? "");
                   }}
                 />
 
-                {photoUrl && (
+                {photoPreviewUrl && (
                   <div className="relative h-48 w-full overflow-hidden rounded-lg border">
                     <Image
-                      src={photoUrl}
+                      src={photoPreviewUrl}
                       alt="Uploaded complaint"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 768px"
                       className="h-full w-full object-cover"
+                      unoptimized
                     />
                     <Button
                       type="button"
@@ -529,8 +574,9 @@ export default function RegisterComplaint() {
                       size="sm"
                       className="absolute top-2 right-2"
                       onClick={() => {
-                        setPhotoUrl("");
-                        form.setValue("photoUrl", "");
+                        setPhotoKey("");
+                        setPhotoPreviewUrl("");
+                        form.setValue("photoKey", "");
                       }}
                     >
                       Remove

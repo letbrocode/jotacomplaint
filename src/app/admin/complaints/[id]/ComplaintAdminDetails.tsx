@@ -41,6 +41,7 @@ import type { ComplaintDetailsWithRelations } from "~/types/complaint";
 
 interface ComplaintAdminDetailsProps {
   complaint: ComplaintDetailsWithRelations;
+  photoUrl?: string | null;
   staffList: Array<{
     id: string;
     name: string | null;
@@ -50,6 +51,7 @@ interface ComplaintAdminDetailsProps {
 
 export default function ComplaintAdminDetails({
   complaint,
+  photoUrl,
   staffList,
 }: ComplaintAdminDetailsProps) {
   const router = useRouter();
@@ -64,7 +66,9 @@ export default function ComplaintAdminDetails({
 
   const handleStatusUpdate = async (newStatus: Status) => {
     setUpdating(true);
-    const result = await updateComplaintAction(complaint.id, { status: newStatus });
+    const result = await updateComplaintAction(complaint.id, {
+      status: newStatus,
+    });
     if (result.success) {
       toast.success("Status updated");
     } else {
@@ -103,19 +107,21 @@ export default function ComplaintAdminDetails({
     setUpdating(false);
   };
 
-  const statusColor = {
-    PENDING: "border-yellow-500/20 bg-yellow-500/10 text-yellow-600",
-    IN_PROGRESS: "border-blue-500/20 bg-blue-500/10 text-blue-600",
-    RESOLVED: "border-green-500/20 bg-green-500/10 text-green-600",
-    REJECTED: "border-red-500/20 bg-red-500/10 text-red-600",
-    ESCALATED: "border-orange-500/20 bg-orange-500/10 text-orange-600",
-  }[complaint.status as string] ?? "";
+  const statusColor =
+    {
+      PENDING: "border-yellow-500/20 bg-yellow-500/10 text-yellow-600",
+      IN_PROGRESS: "border-blue-500/20 bg-blue-500/10 text-blue-600",
+      RESOLVED: "border-green-500/20 bg-green-500/10 text-green-600",
+      REJECTED: "border-red-500/20 bg-red-500/10 text-red-600",
+      ESCALATED: "border-orange-500/20 bg-orange-500/10 text-orange-600",
+    }[complaint.status as string] ?? "";
 
-  const priorityColor = {
-    HIGH: "border-red-500/20 bg-red-500/10 text-red-600",
-    MEDIUM: "border-orange-500/20 bg-orange-500/10 text-orange-600",
-    LOW: "border-blue-500/20 bg-blue-500/10 text-blue-600",
-  }[complaint.priority as string] ?? "";
+  const priorityColor =
+    {
+      HIGH: "border-red-500/20 bg-red-500/10 text-red-600",
+      MEDIUM: "border-orange-500/20 bg-orange-500/10 text-orange-600",
+      LOW: "border-blue-500/20 bg-blue-500/10 text-blue-600",
+    }[complaint.priority as string] ?? "";
 
   return (
     <div className="space-y-6">
@@ -151,14 +157,16 @@ export default function ComplaintAdminDetails({
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-primary" />
+                <AlertCircle className="text-primary h-5 w-5" />
                 {complaint.title}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
                 <h3 className="mb-2 text-sm font-semibold">Description</h3>
-                <p className="text-muted-foreground whitespace-pre-wrap">{complaint.details}</p>
+                <p className="text-muted-foreground whitespace-pre-wrap">
+                  {complaint.details}
+                </p>
               </div>
 
               <Separator />
@@ -197,23 +205,31 @@ export default function ComplaintAdminDetails({
                   <div className="flex items-center gap-2 text-sm">
                     <Clock className="text-muted-foreground h-4 w-4" />
                     <span className="font-medium">Last Updated:</span>
-                    <span>{formatDistanceToNow(new Date(complaint.updatedAt), { addSuffix: true })}</span>
+                    <span>
+                      {formatDistanceToNow(new Date(complaint.updatedAt), {
+                        addSuffix: true,
+                      })}
+                    </span>
                   </div>
                   {complaint.resolvedAt && (
                     <div className="flex items-center gap-2 text-sm">
                       <CheckCircle className="h-4 w-4 text-green-500" />
                       <span className="font-medium">Resolved:</span>
-                      <span>{format(new Date(complaint.resolvedAt), "PPp")}</span>
+                      <span>
+                        {format(new Date(complaint.resolvedAt), "PPp")}
+                      </span>
                     </div>
                   )}
                 </div>
               </div>
 
-              {complaint.photoUrl && (
+              {photoUrl && (
                 <div className="pt-4">
-                  <h3 className="mb-3 text-sm font-semibold">Attached Evidence</h3>
+                  <h3 className="mb-3 text-sm font-semibold">
+                    Attached Evidence
+                  </h3>
                   <div className="max-w-md overflow-hidden rounded-lg border">
-                    <ImageModal src={complaint.photoUrl} alt={complaint.title} />
+                    <ImageModal src={photoUrl} alt={complaint.title} />
                   </div>
                 </div>
               )}
@@ -238,11 +254,16 @@ export default function ComplaintAdminDetails({
                   )}
                   {complaint.duplicates?.length > 0 && (
                     <div className="mt-2 text-sm">
-                      <p className="font-medium">Found {complaint.duplicates.length} duplicates:</p>
+                      <p className="font-medium">
+                        Found {complaint.duplicates.length} duplicates:
+                      </p>
                       <ul className="mt-1 list-inside list-disc space-y-1">
                         {complaint.duplicates.map((dup) => (
                           <li key={dup.id}>
-                            <a href={`/admin/complaints/${dup.id}`} className="underline underline-offset-4">
+                            <a
+                              href={`/admin/complaints/${dup.id}`}
+                              className="underline underline-offset-4"
+                            >
                               {dup.title}
                             </a>{" "}
                             ({dup.status})
@@ -260,7 +281,7 @@ export default function ComplaintAdminDetails({
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5 text-primary" />
+                <MessageSquare className="text-primary h-5 w-5" />
                 Discussion ({complaint.comments?.length ?? 0})
               </CardTitle>
             </CardHeader>
@@ -271,23 +292,35 @@ export default function ComplaintAdminDetails({
                     key={comment.id}
                     className={cn(
                       "rounded-lg border p-4 shadow-sm",
-                      comment.isInternal ? "border-yellow-500/20 bg-yellow-50/50 dark:bg-yellow-950/10" : "bg-muted/30"
+                      comment.isInternal
+                        ? "border-yellow-500/20 bg-yellow-50/50 dark:bg-yellow-950/10"
+                        : "bg-muted/30",
                     )}
                   >
                     <div className="mb-2 flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold">{comment.author.name ?? "Anonymous"}</span>
-                        <Badge variant="outline" className="text-[10px] uppercase tracking-wider">
+                        <span className="font-semibold">
+                          {comment.author.name ?? "Anonymous"}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] tracking-wider uppercase"
+                        >
                           {comment.author.role}
                         </Badge>
                         {comment.isInternal && (
-                          <Badge variant="secondary" className="text-[10px] uppercase">
+                          <Badge
+                            variant="secondary"
+                            className="text-[10px] uppercase"
+                          >
                             Internal
                           </Badge>
                         )}
                       </div>
                       <span className="text-muted-foreground text-[10px]">
-                        {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(comment.createdAt), {
+                          addSuffix: true,
+                        })}
                       </span>
                     </div>
                     <p className="text-sm">{comment.content}</p>
@@ -296,7 +329,9 @@ export default function ComplaintAdminDetails({
                 {(!complaint.comments || complaint.comments.length === 0) && (
                   <div className="py-8 text-center">
                     <MessageSquare className="text-muted-foreground/20 mx-auto mb-2 h-12 w-12" />
-                    <p className="text-muted-foreground text-sm">No comments yet</p>
+                    <p className="text-muted-foreground text-sm">
+                      No comments yet
+                    </p>
                   </div>
                 )}
               </div>
@@ -329,7 +364,11 @@ export default function ComplaintAdminDetails({
                     disabled={!newComment.trim() || updating}
                     className="min-w-[120px]"
                   >
-                    {updating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                    {updating ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="mr-2 h-4 w-4" />
+                    )}
                     Send
                   </Button>
                 </div>
@@ -346,10 +385,14 @@ export default function ComplaintAdminDetails({
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <label className="text-muted-foreground mb-2 block text-xs font-semibold tracking-wider uppercase">
                   Status
                 </label>
-                <Select value={complaint.status} onValueChange={handleStatusUpdate} disabled={updating}>
+                <Select
+                  value={complaint.status}
+                  onValueChange={handleStatusUpdate}
+                  disabled={updating}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
@@ -364,7 +407,7 @@ export default function ComplaintAdminDetails({
               </div>
 
               <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <label className="text-muted-foreground mb-2 block text-xs font-semibold tracking-wider uppercase">
                   Assign To
                 </label>
                 <Select
@@ -387,9 +430,11 @@ export default function ComplaintAdminDetails({
               </div>
 
               {complaint.assignedTo && (
-                <div className="rounded-lg bg-background p-3 text-sm shadow-sm">
+                <div className="bg-background rounded-lg p-3 text-sm shadow-sm">
                   <p className="font-semibold">Current Officer</p>
-                  <p className="text-muted-foreground">{complaint.assignedTo.name ?? complaint.assignedTo.email}</p>
+                  <p className="text-muted-foreground">
+                    {complaint.assignedTo.name ?? complaint.assignedTo.email}
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -398,24 +443,32 @@ export default function ComplaintAdminDetails({
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5 text-primary" />
+                <Activity className="text-primary h-5 w-5" />
                 History
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="relative space-y-4 before:absolute before:left-[11px] before:top-2 before:h-[calc(100%-8px)] before:w-[1px] before:bg-muted">
+              <div className="before:bg-muted relative space-y-4 before:absolute before:top-2 before:left-[11px] before:h-[calc(100%-8px)] before:w-[1px]">
                 {complaint.activities?.map((activity) => (
                   <div key={activity.id} className="relative pl-7">
-                    <div className="absolute left-0 top-1.5 h-[22px] w-[22px] rounded-full border bg-background flex items-center justify-center">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                    <div className="bg-background absolute top-1.5 left-0 flex h-[22px] w-[22px] items-center justify-center rounded-full border">
+                      <div className="bg-primary h-1.5 w-1.5 rounded-full" />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-sm font-semibold">{activity.action.replace(/_/g, " ")}</span>
+                      <span className="text-sm font-semibold">
+                        {activity.action.replace(/_/g, " ")}
+                      </span>
                       <span className="text-muted-foreground text-[10px]">
                         {format(new Date(activity.createdAt), "PPp")}
                       </span>
-                      {activity.comment && <p className="mt-1 text-xs text-muted-foreground italic">&quot;{activity.comment}&quot;</p>}
-                      <span className="mt-1 text-[10px] font-medium">by {activity.user.name ?? "System"}</span>
+                      {activity.comment && (
+                        <p className="text-muted-foreground mt-1 text-xs italic">
+                          &quot;{activity.comment}&quot;
+                        </p>
+                      )}
+                      <span className="mt-1 text-[10px] font-medium">
+                        by {activity.user.name ?? "System"}
+                      </span>
                     </div>
                   </div>
                 ))}
