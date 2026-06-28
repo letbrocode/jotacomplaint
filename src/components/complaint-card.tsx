@@ -77,7 +77,7 @@ export default function ComplaintCard({
         throw new Error(result.error);
       }
 
-      const updated = result.data as ComplaintWithRelations;
+      const updated = result.data;
 
       // Update local state
       if (updateData.status !== undefined) setStatus(updated.status);

@@ -241,7 +241,7 @@ Complaint >── Department
 | Model | Key Fields | Purpose |
 |---|---|---|
 | `User` | id, name, email, password, role, isActive | All user accounts (citizen/staff/admin) |
-| `Complaint` | id, title, details, category, location, lat, lng, photoUrl, priority, status, userId, assignedToId, departmentId | Core complaint entity |
+| `Complaint` | id, title, details, category, location, lat, lng, photoKey, priority, status, userId, assignedToId, departmentId | Core complaint entity |
 | `Department` | id, name, description, email, phone, isActive | Municipal departments |
 | `Comment` | id, content, isInternal, complaintId, authorId | Discussion on complaints; `isInternal` hides from citizens |
 | `ComplaintActivity` | id, action, oldValue, newValue, comment, complaintId, userId | Immutable audit log |

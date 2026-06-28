@@ -2,6 +2,7 @@ import { type NextResponse } from "next/server";
 import { NextResponse as NR } from "next/server";
 import { ZodError } from "zod";
 import { AppError, toAppError } from "./errors";
+import { logger } from "~/lib/logger";
 
 // ============================================
 // Standard API response shapes
@@ -56,7 +57,7 @@ export function apiError(
 // ============================================
 
 export function handleApiError(err: unknown): NextResponse<ApiError> {
-  console.error("[API Error]", err);
+  logger.error({ err }, "[API Error]");
 
   if (err instanceof ZodError) {
     const message = err.errors.map((e) => e.message).join(", ");
