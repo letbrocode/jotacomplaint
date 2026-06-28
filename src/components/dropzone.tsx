@@ -2,6 +2,7 @@
 
 import React, { useRef, useState } from "react";
 import { RiImageAddLine } from "react-icons/ri";
+import { toast } from "sonner";
 import {
   allowedImageMimeTypes,
   MAX_UPLOAD_FILE_SIZE,
@@ -12,6 +13,8 @@ type PresignResponse = {
   uploadUrl: string;
   headers: Record<string, string>;
 };
+
+const ACCEPTED_FILE_TYPES = allowedImageMimeTypes.join(",");
 
 const Dropzone = ({
   onUploadComplete,
@@ -25,6 +28,7 @@ const Dropzone = ({
   const [uploading, setUploading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const xhrRef = useRef<XMLHttpRequest | null>(null);
 
   const createUploadUrl = async (file: File): Promise<PresignResponse> => {
     const response = await fetch("/api/uploads/presign", {
@@ -46,6 +50,7 @@ const Dropzone = ({
   const uploadFile = (file: File, presign: PresignResponse) =>
     new Promise<void>((resolve, reject) => {
       const request = new XMLHttpRequest();
+      xhrRef.current = request;
 
       request.upload.onprogress = (event) => {
         if (event.lengthComputable) {
@@ -54,6 +59,7 @@ const Dropzone = ({
       };
 
       request.onload = () => {
+        xhrRef.current = null;
         if (request.status >= 200 && request.status < 300) {
           resolve();
         } else {
@@ -61,13 +67,26 @@ const Dropzone = ({
         }
       };
 
-      request.onerror = () => reject(new Error("S3 upload failed"));
+      request.onerror = () => {
+        xhrRef.current = null;
+        reject(new Error("S3 upload failed"));
+      };
+
+      request.onabort = () => {
+        xhrRef.current = null;
+        reject(new Error("Upload cancelled"));
+      };
+
       request.open("PUT", presign.uploadUrl);
       Object.entries(presign.headers).forEach(([key, value]) => {
         request.setRequestHeader(key, value);
       });
       request.send(file);
     });
+
+  const cancelUpload = () => {
+    xhrRef.current?.abort();
+  };
 
   const isAllowedMimeType = (
     contentType: string,
@@ -90,7 +109,7 @@ const Dropzone = ({
 
     const validationError = validateFile(file);
     if (validationError) {
-      alert(validationError);
+      toast.error(validationError);
       e.target.value = ""; // reset input so user can re-upload same file
       return;
     }
@@ -106,7 +125,12 @@ const Dropzone = ({
         previewUrl: URL.createObjectURL(file),
       });
     } catch (error) {
-      console.error("Upload error:", error);
+      if (error instanceof Error && error.message === "Upload cancelled") {
+        toast.info("Upload cancelled.");
+      } else {
+        console.error("Upload error:", error);
+        toast.error("Upload failed. Please try again.");
+      }
     } finally {
       setUploading(false);
     }
@@ -118,7 +142,7 @@ const Dropzone = ({
         ref={fileInputRef}
         type="file"
         id="file-input"
-        accept="image/*"
+        accept={ACCEPTED_FILE_TYPES}
         className="hidden"
         onChange={handleFileChange}
       />
@@ -134,7 +158,19 @@ const Dropzone = ({
         <RiImageAddLine className="h-10 w-10" />
 
         {uploading && (
-          <progress value={progress} max={100} className="mt-4 w-3/4" />
+          <div className="mt-4 flex w-3/4 items-center gap-2">
+            <progress value={progress} max={100} className="flex-1" />
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                cancelUpload();
+              }}
+              className="text-muted-foreground hover:text-destructive text-xs underline"
+            >
+              Cancel
+            </button>
+          </div>
         )}
       </label>
     </div>
