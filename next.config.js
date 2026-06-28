@@ -10,7 +10,7 @@ const config = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "ik.imagekit.io",
+        hostname: "*.s3.*.amazonaws.com",
       },
     ],
   },
@@ -21,7 +21,7 @@ const config = {
         headers: [
           {
             key: "Content-Security-Policy",
-            value: `default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://ik.imagekit.io; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; connect-src 'self' https://*.pusher.com wss://*.pusher.com https://*.upstash.io;`.replace(
+            value: `default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://*.s3.*.amazonaws.com; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; connect-src 'self' https://*.pusher.com wss://*.pusher.com https://*.upstash.io https://*.s3.*.amazonaws.com;`.replace(
               /\s{2,}/g,
               " ",
             ),
