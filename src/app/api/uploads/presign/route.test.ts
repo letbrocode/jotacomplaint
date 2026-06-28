@@ -1,10 +1,12 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { POST } from "./route";
 
-const { mockRequireAuth, mockCreateComplaintUploadUrl } = vi.hoisted(() => ({
-  mockRequireAuth: vi.fn(),
-  mockCreateComplaintUploadUrl: vi.fn(),
-}));
+const { mockRequireAuth, mockCreateComplaintUploadUrl, mockApiLimiter } =
+  vi.hoisted(() => ({
+    mockRequireAuth: vi.fn(),
+    mockCreateComplaintUploadUrl: vi.fn(),
+    mockApiLimiter: { limit: vi.fn() },
+  }));
 
 vi.mock("~/lib/auth-guards", () => ({
   requireAuth: mockRequireAuth,
@@ -14,9 +16,15 @@ vi.mock("~/server/storage/s3.service", () => ({
   createComplaintUploadUrl: mockCreateComplaintUploadUrl,
 }));
 
+vi.mock("~/lib/rate-limit", () => ({
+  apiLimiter: mockApiLimiter,
+  getIpFromRequest: vi.fn().mockReturnValue("127.0.0.1"),
+}));
+
 describe("POST /api/uploads/presign", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockApiLimiter.limit.mockResolvedValue({ success: true });
     mockRequireAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockCreateComplaintUploadUrl.mockResolvedValue({
       objectKey: "complaints/user-1/photo.webp",
@@ -64,5 +72,60 @@ describe("POST /api/uploads/presign", () => {
 
     expect(response.status).toBe(400);
     expect(mockCreateComplaintUploadUrl).not.toHaveBeenCalled();
+  });
+
+  it("returns 429 when rate limited", async () => {
+    mockApiLimiter.limit.mockResolvedValue({ success: false });
+
+    const response = await POST(
+      new Request("http://localhost/api/uploads/presign", {
+        method: "POST",
+        body: JSON.stringify({
+          contentType: "image/webp",
+          fileSize: 1024,
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(429);
+    expect(mockRequireAuth).not.toHaveBeenCalled();
+    expect(mockCreateComplaintUploadUrl).not.toHaveBeenCalled();
+  });
+
+  it("returns 401 when unauthenticated", async () => {
+    mockRequireAuth.mockRejectedValue(
+      new (await import("~/lib/errors")).UnauthorizedError(),
+    );
+
+    const response = await POST(
+      new Request("http://localhost/api/uploads/presign", {
+        method: "POST",
+        body: JSON.stringify({
+          contentType: "image/webp",
+          fileSize: 1024,
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(mockCreateComplaintUploadUrl).not.toHaveBeenCalled();
+  });
+
+  it("returns 500 when the S3 service throws", async () => {
+    mockCreateComplaintUploadUrl.mockRejectedValue(
+      new Error("S3 outage"),
+    );
+
+    const response = await POST(
+      new Request("http://localhost/api/uploads/presign", {
+        method: "POST",
+        body: JSON.stringify({
+          contentType: "image/webp",
+          fileSize: 1024,
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(500);
   });
 });
