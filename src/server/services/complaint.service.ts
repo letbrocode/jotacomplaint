@@ -1,5 +1,11 @@
 import { db } from "~/server/db";
-import type { Role, Status, Priority, ComplaintCategory, Prisma } from "@prisma/client";
+import type {
+  Role,
+  Status,
+  Priority,
+  ComplaintCategory,
+  Prisma,
+} from "@prisma/client";
 import { ActivityAction, NotificationType } from "@prisma/client";
 import { NotFoundError, ForbiddenError } from "~/lib/errors";
 import {
@@ -9,7 +15,10 @@ import {
 } from "~/lib/pagination";
 import { DEFAULT_SLA_HOURS } from "~/lib/complaint";
 import { getSLADueDate } from "~/lib/date";
-import type { CreateComplaintInput, UpdateComplaintInput } from "~/schemas/complaint.schema";
+import type {
+  CreateComplaintInput,
+  UpdateComplaintInput,
+} from "~/schemas/complaint.schema";
 import { emailQueue } from "~/server/jobs/queues";
 import {
   triggerComplaintUpdate,
@@ -42,7 +51,6 @@ export type ComplaintFilters = {
 };
 
 const complaintInclude = complaintListInclude;
-
 
 function buildComplaintWhere(
   userId: string,
@@ -192,7 +200,10 @@ export async function getComplaintById(
     const isAssigned = complaint.assignedToId === userId;
     const isInDept = complaint.department
       ? await db.department.findFirst({
-          where: { id: complaint.departmentId!, staff: { some: { id: userId } } },
+          where: {
+            id: complaint.departmentId!,
+            staff: { some: { id: userId } },
+          },
         })
       : null;
     if (!isAssigned && !isInDept) throw new ForbiddenError();
@@ -216,67 +227,77 @@ export async function createComplaint(
   const slaPolicy = await db.sLAPolicy.findFirst({
     where: { category: data.category, priority: data.priority, isActive: true },
   });
-  const resolutionHrs = slaPolicy?.resolutionHrs ?? DEFAULT_SLA_HOURS[data.priority];
+  const resolutionHrs =
+    slaPolicy?.resolutionHrs ?? DEFAULT_SLA_HOURS[data.priority];
   const dueDate = getSLADueDate(new Date(), resolutionHrs);
 
-  const lat = typeof data.latitude === "string"
-    ? Number.parseFloat(data.latitude as string)
-    : (data.latitude ?? null);
-  const lng = typeof data.longitude === "string"
-    ? Number.parseFloat(data.longitude as string)
-    : (data.longitude ?? null);
+  const lat =
+    typeof data.latitude === "string"
+      ? Number.parseFloat(data.latitude as string)
+      : (data.latitude ?? null);
+  const lng =
+    typeof data.longitude === "string"
+      ? Number.parseFloat(data.longitude as string)
+      : (data.longitude ?? null);
 
-  return db.$transaction(async (tx) => {
-    const complaint = await tx.complaint.create({
-      data: {
-        title: data.title,
-        details: data.details,
-        category: data.category,
-        priority: data.priority,
-        location: data.location ?? null,
-        latitude: lat,
-        longitude: lng,
-        photoUrl: data.photoUrl ?? null,
-        departmentId: data.departmentId ?? null,
-        dueDate,
-        userId,
-      },
-      include: complaintInclude,
+  return db
+    .$transaction(async (tx) => {
+      const complaint = await tx.complaint.create({
+        data: {
+          title: data.title,
+          details: data.details,
+          category: data.category,
+          priority: data.priority,
+          location: data.location ?? null,
+          latitude: lat,
+          longitude: lng,
+          photoKey: data.photoKey ?? null,
+          departmentId: data.departmentId ?? null,
+          dueDate,
+          userId,
+        },
+        include: complaintInclude,
+      });
+
+      await tx.complaintActivity.create({
+        data: {
+          complaintId: complaint.id,
+          userId,
+          action: ActivityAction.NEW_COMPLAINT,
+          comment: "Complaint submitted",
+        },
+      });
+
+      await tx.notification.create({
+        data: {
+          userId,
+          complaintId: complaint.id,
+          title: "Complaint Submitted",
+          message: `Your complaint "${complaint.title}" has been received.`,
+          type: NotificationType.COMPLAINT_CREATED,
+        },
+      });
+
+      return complaint;
+    })
+    .then(async (complaint) => {
+      // ── Side Effects (Non-blocking) ──────────────────────────
+      void emailQueue
+        .add("complaint-created", {
+          type: "complaint-created",
+          complaintId: complaint.id,
+          userId,
+        })
+        .catch(() => null);
+
+      void invalidateCache(
+        CacheKeys.dashboardStats,
+        CacheKeys.departmentBreakdown,
+      ).catch(() => null);
+      void triggerDashboardRefresh().catch(() => null);
+
+      return complaint;
     });
-
-    await tx.complaintActivity.create({
-      data: {
-        complaintId: complaint.id,
-        userId,
-        action: ActivityAction.NEW_COMPLAINT,
-        comment: "Complaint submitted",
-      },
-    });
-
-    await tx.notification.create({
-      data: {
-        userId,
-        complaintId: complaint.id,
-        title: "Complaint Submitted",
-        message: `Your complaint "${complaint.title}" has been received.`,
-        type: NotificationType.COMPLAINT_CREATED,
-      },
-    });
-
-    return complaint;
-  }).then(async (complaint) => {
-    // ── Side Effects (Non-blocking) ──────────────────────────
-    void emailQueue.add("complaint-created", {
-      type: "complaint-created",
-      complaintId: complaint.id,
-      userId,
-    }).catch(() => null);
-
-    void invalidateCache(CacheKeys.dashboardStats, CacheKeys.departmentBreakdown).catch(() => null);
-    void triggerDashboardRefresh().catch(() => null);
-
-    return complaint;
-  });
 }
 
 /**
@@ -325,13 +346,14 @@ export async function updateComplaint(
     activities.push({
       complaintId: id,
       userId: actorId,
-      action: data.status === "REJECTED"
-        ? ActivityAction.REJECTED
-        : data.status === "ESCALATED"
-          ? ActivityAction.ESCALATED
-          : data.status === "RESOLVED"
-            ? ActivityAction.RESOLVED
-            : ActivityAction.STATUS_CHANGED,
+      action:
+        data.status === "REJECTED"
+          ? ActivityAction.REJECTED
+          : data.status === "ESCALATED"
+            ? ActivityAction.ESCALATED
+            : data.status === "RESOLVED"
+              ? ActivityAction.RESOLVED
+              : ActivityAction.STATUS_CHANGED,
       oldValue: existing.status,
       newValue: data.status,
       comment: `Status changed from ${existing.status} to ${data.status}`,
@@ -366,8 +388,13 @@ export async function updateComplaint(
     });
   }
 
-  if (data.assignedToId !== undefined && data.assignedToId !== existing.assignedToId) {
-    const action = existing.assignedToId ? ActivityAction.REASSIGNED : ActivityAction.ASSIGNED;
+  if (
+    data.assignedToId !== undefined &&
+    data.assignedToId !== existing.assignedToId
+  ) {
+    const action = existing.assignedToId
+      ? ActivityAction.REASSIGNED
+      : ActivityAction.ASSIGNED;
     activities.push({
       complaintId: id,
       userId: actorId,
@@ -388,7 +415,10 @@ export async function updateComplaint(
     }
   }
 
-  if (data.departmentId !== undefined && data.departmentId !== existing.departmentId) {
+  if (
+    data.departmentId !== undefined &&
+    data.departmentId !== existing.departmentId
+  ) {
     activities.push({
       complaintId: id,
       userId: actorId,
@@ -405,9 +435,14 @@ export async function updateComplaint(
       data: {
         ...(data.status && { status: data.status }),
         ...(data.priority && { priority: data.priority }),
-        ...(data.assignedToId !== undefined && { assignedToId: data.assignedToId }),
-        ...(data.departmentId !== undefined && { departmentId: data.departmentId }),
-        ...(data.status === "RESOLVED" && !existing.resolvedAt && { resolvedAt: new Date() }),
+        ...(data.assignedToId !== undefined && {
+          assignedToId: data.assignedToId,
+        }),
+        ...(data.departmentId !== undefined && {
+          departmentId: data.departmentId,
+        }),
+        ...(data.status === "RESOLVED" &&
+          !existing.resolvedAt && { resolvedAt: new Date() }),
         ...(data.status === "REJECTED" && {
           rejectedAt: new Date(),
           rejectionNote: data.rejectionNote,
@@ -417,8 +452,10 @@ export async function updateComplaint(
       include: complaintInclude,
     });
 
-    if (activities.length > 0) await tx.complaintActivity.createMany({ data: activities });
-    if (notifications.length > 0) await tx.notification.createMany({ data: notifications });
+    if (activities.length > 0)
+      await tx.complaintActivity.createMany({ data: activities });
+    if (notifications.length > 0)
+      await tx.notification.createMany({ data: notifications });
 
     return updated;
   });
@@ -462,7 +499,8 @@ async function postUpdateSideEffects({
           type: "complaint-rejected",
           complaintId: complaint.id,
           userId: complaint.userId,
-          rejectionNote: rejectionNote ?? "Please resubmit with more details if needed.",
+          rejectionNote:
+            rejectionNote ?? "Please resubmit with more details if needed.",
         });
       } else {
         void emailQueue.add("status-updated", {
@@ -508,7 +546,10 @@ async function postUpdateSideEffects({
       CacheKeys.departmentBreakdown,
     ).catch(() => null);
   } catch (err) {
-    logger.error({ err, complaintId: complaint.id }, "❌ Error in postUpdateSideEffects");
+    logger.error(
+      { err, complaintId: complaint.id },
+      "❌ Error in postUpdateSideEffects",
+    );
   }
 }
 

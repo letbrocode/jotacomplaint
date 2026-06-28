@@ -28,6 +28,12 @@ export const env = createEnv({
     // Resend email
     RESEND_API_KEY: z.string().optional(),
     EMAIL_FROM: z.string().optional(),
+
+    // AWS S3 complaint media
+    AWS_REGION: z.string().optional(),
+    AWS_ACCESS_KEY_ID: z.string().optional(),
+    AWS_SECRET_ACCESS_KEY: z.string().optional(),
+    S3_UPLOAD_BUCKET: z.string().optional(),
   },
 
   client: {
@@ -55,6 +61,11 @@ export const env = createEnv({
 
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     EMAIL_FROM: process.env.EMAIL_FROM,
+
+    AWS_REGION: process.env.AWS_REGION,
+    AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
+    AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
+    S3_UPLOAD_BUCKET: process.env.S3_UPLOAD_BUCKET,
 
     NEXT_PUBLIC_PUSHER_KEY: process.env.NEXT_PUBLIC_PUSHER_KEY,
     NEXT_PUBLIC_PUSHER_CLUSTER: process.env.NEXT_PUBLIC_PUSHER_CLUSTER,
