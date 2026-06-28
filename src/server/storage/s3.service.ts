@@ -114,6 +114,7 @@ export async function createComplaintUploadUrl({
     Bucket: bucket,
     Key: objectKey,
     ContentType: contentType,
+    ContentLength: fileSize,
   });
 
   const uploadUrl = await getSignedUrl(client, command, {
