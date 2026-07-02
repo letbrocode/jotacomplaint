@@ -6,7 +6,6 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { unstable_cache } from "next/cache";
 import { env } from "~/env";
 import { AppError, ForbiddenError, ValidationError } from "~/lib/errors";
 import {
@@ -155,17 +154,29 @@ export async function createComplaintUploadUrl({
 // Cache presigned GET URLs for 240s — expires before the 300s presign window.
 // This eliminates N redundant SDK calls on every list-page render when the
 // same photoKey appears across multiple requests within the cache window.
-const _signReadUrl = unstable_cache(
-  async (photoKey: string): Promise<string> => {
-    const { client, bucket } = getS3Client();
-    const command = new GetObjectCommand({ Bucket: bucket, Key: photoKey });
-    return getSignedUrl(client, command, {
-      expiresIn: READ_URL_EXPIRES_IN_SECONDS,
-    });
-  },
-  ["s3-read-url"],
-  { revalidate: 240 },
-);
+//
+// Implemented as a plain TTL Map rather than next/cache unstable_cache because
+// unstable_cache requires Next.js incremental-cache infrastructure at runtime
+// and throws "Invariant: incrementalCache missing" in Vitest and other non-Next
+// execution contexts.
+type CacheEntry = { url: string; expiresAt: number };
+export const _readUrlCache = new Map<string, CacheEntry>();
+const READ_URL_CACHE_TTL_MS = 240_000;
+
+async function _signReadUrl(photoKey: string): Promise<string> {
+  const now = Date.now();
+  const hit = _readUrlCache.get(photoKey);
+  if (hit && hit.expiresAt > now) return hit.url;
+
+  const { client, bucket } = getS3Client();
+  const command = new GetObjectCommand({ Bucket: bucket, Key: photoKey });
+  const url = await getSignedUrl(client, command, {
+    expiresIn: READ_URL_EXPIRES_IN_SECONDS,
+  });
+
+  _readUrlCache.set(photoKey, { url, expiresAt: now + READ_URL_CACHE_TTL_MS });
+  return url;
+}
 
 export async function createComplaintReadUrl(
   photoKey: string | null | undefined,

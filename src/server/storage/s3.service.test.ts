@@ -5,6 +5,7 @@ import {
   createComplaintReadUrlMap,
   generateComplaintPhotoKey,
   validateComplaintUpload,
+  _readUrlCache,
 } from "~/server/storage/s3.service";
 import {
   MAX_UPLOAD_FILE_SIZE,
@@ -31,6 +32,9 @@ vi.mock("@aws-sdk/s3-request-presigner", () => ({
 describe("S3 storage service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Clear the in-process TTL cache so stale entries from a previous test
+    // don't bleed into the next one and bypass mockRejectedValueOnce.
+    _readUrlCache.clear();
     mockGetSignedUrl.mockResolvedValue("https://signed.example/url");
   });
 
