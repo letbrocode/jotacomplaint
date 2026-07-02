@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import type { Notification } from "@prisma/client";
 import NotificationItem from "~/components/notifications/NotificationItem";
+import type { PaginatedResponse } from "~/lib/pagination";
 
 type NotificationWithComplaint = Notification & {
   complaint?: {
@@ -29,6 +30,14 @@ type NotificationWithComplaint = Notification & {
 type NotificationsPageProps = {
   userRole: "ADMIN" | "STAFF" | "USER";
 };
+
+type NotificationsApiResponse =
+  | NotificationWithComplaint[]
+  | PaginatedResponse<NotificationWithComplaint>;
+
+function getNotificationItems(data: NotificationsApiResponse) {
+  return Array.isArray(data) ? data : data.data;
+}
 
 export default function NotificationsPage({
   userRole,
@@ -49,8 +58,8 @@ export default function NotificationsPage({
       const res = await fetch("/api/notifications");
       if (!res.ok) throw new Error("Failed to fetch notifications");
 
-      const data = (await res.json()) as NotificationWithComplaint[];
-      setNotifications(data);
+      const data = (await res.json()) as NotificationsApiResponse;
+      setNotifications(getNotificationItems(data));
       setLastUpdated(new Date());
     } catch (err) {
       console.error(err);
@@ -136,18 +145,6 @@ export default function NotificationsPage({
   const unreadNotifications = notifications.filter((n) => !n.isRead);
   const readNotifications = notifications.filter((n) => n.isRead);
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-12 w-full" />
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-24 w-full" />
-        ))}
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="flex min-h-[400px] flex-col items-center justify-center space-y-4 p-8">
@@ -173,7 +170,9 @@ export default function NotificationsPage({
             {userRole === "USER" ? "complaints" : "assignments"}
           </p>
           <p className="text-muted-foreground mt-1 text-xs">
-            Last updated: {lastUpdated.toLocaleTimeString()}
+            {loading
+              ? "Loading notifications..."
+              : `Last updated: ${lastUpdated.toLocaleTimeString()}`}
           </p>
         </div>
         <Button
@@ -256,7 +255,13 @@ export default function NotificationsPage({
 
         {/* All Notifications */}
         <TabsContent value="all" className="space-y-2">
-          {notifications.length === 0 ? (
+          {loading ? (
+            <div className="space-y-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-24 w-full" />
+              ))}
+            </div>
+          ) : notifications.length === 0 ? (
             <Card className="p-12 text-center">
               <Inbox className="text-muted-foreground mx-auto mb-4 h-16 w-16 opacity-20" />
               <h3 className="mb-2 text-lg font-semibold">No notifications</h3>

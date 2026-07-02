@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, type KeyboardEvent, type MouseEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -49,9 +50,30 @@ export default function ComplaintCard({
   canAssignStaff = false,
   photoUrl = null,
 }: ComplaintCardProps) {
+  const router = useRouter();
   const [status, setStatus] = useState(complaint.status);
   const [assignedTo, setAssignedTo] = useState(complaint.assignedTo?.id ?? "");
   const [updating, setUpdating] = useState(false);
+
+  const isInteractiveTarget = (target: EventTarget | null) =>
+    target instanceof Element &&
+    Boolean(
+      target.closest(
+        "a, button, input, textarea, select, [role='button'], [role='combobox']",
+      ),
+    );
+
+  function handleCardClick(event: MouseEvent<HTMLDivElement>) {
+    if (isInteractiveTarget(event.target)) return;
+    router.push(detailHref);
+  }
+
+  function handleCardKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    if (isInteractiveTarget(event.target)) return;
+    event.preventDefault();
+    router.push(detailHref);
+  }
 
   type ComplaintUpdatePayload = {
     status?: $Enums.Status;
@@ -161,9 +183,13 @@ export default function ComplaintCard({
 
   return (
     <Card
-      className="relative overflow-hidden transition-all hover:shadow-md"
+      className="relative cursor-pointer overflow-hidden transition-all hover:shadow-md"
       data-testid="complaint-item"
       data-complaint-id={complaint.id}
+      role="link"
+      tabIndex={0}
+      onClick={handleCardClick}
+      onKeyDown={handleCardKeyDown}
     >
       <div className="grid grid-cols-1 md:grid-cols-3">
         {/* Left Side: Details */}
