@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, type KeyboardEvent, type MouseEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -37,6 +38,7 @@ interface ComplaintCardProps {
   detailHref?: string;
   canUpdateStatus?: boolean;
   canAssignStaff?: boolean;
+  photoUrl?: string | null;
 }
 
 export default function ComplaintCard({
@@ -46,10 +48,32 @@ export default function ComplaintCard({
   detailHref = `/admin/complaints/${complaint.id}`,
   canUpdateStatus = false,
   canAssignStaff = false,
+  photoUrl = null,
 }: ComplaintCardProps) {
+  const router = useRouter();
   const [status, setStatus] = useState(complaint.status);
   const [assignedTo, setAssignedTo] = useState(complaint.assignedTo?.id ?? "");
   const [updating, setUpdating] = useState(false);
+
+  const isInteractiveTarget = (target: EventTarget | null) =>
+    target instanceof Element &&
+    Boolean(
+      target.closest(
+        "a, button, input, textarea, select, [role='button'], [role='combobox']",
+      ),
+    );
+
+  function handleCardClick(event: MouseEvent<HTMLDivElement>) {
+    if (isInteractiveTarget(event.target)) return;
+    router.push(detailHref);
+  }
+
+  function handleCardKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    if (isInteractiveTarget(event.target)) return;
+    event.preventDefault();
+    router.push(detailHref);
+  }
 
   type ComplaintUpdatePayload = {
     status?: $Enums.Status;
@@ -75,7 +99,7 @@ export default function ComplaintCard({
         throw new Error(result.error);
       }
 
-      const updated = result.data as ComplaintWithRelations;
+      const updated = result.data;
 
       // Update local state
       if (updateData.status !== undefined) setStatus(updated.status);
@@ -159,9 +183,13 @@ export default function ComplaintCard({
 
   return (
     <Card
-      className="relative overflow-hidden transition-all hover:shadow-md"
+      className="relative cursor-pointer overflow-hidden transition-all hover:shadow-md"
       data-testid="complaint-item"
       data-complaint-id={complaint.id}
+      role="link"
+      tabIndex={0}
+      onClick={handleCardClick}
+      onKeyDown={handleCardKeyDown}
     >
       <div className="grid grid-cols-1 md:grid-cols-3">
         {/* Left Side: Details */}
@@ -169,7 +197,10 @@ export default function ComplaintCard({
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <CardTitle className="text-lg font-semibold" data-testid="complaint-title">
+                <CardTitle
+                  className="text-lg font-semibold"
+                  data-testid="complaint-title"
+                >
                   {complaint.title}
                 </CardTitle>
                 {complaint.department && (
@@ -232,10 +263,7 @@ export default function ComplaintCard({
                   {complaint._count.activities} activities
                 </span>
               )}
-              <SlaCountdown
-                dueDate={complaint.dueDate}
-                status={status}
-              />
+              <SlaCountdown dueDate={complaint.dueDate} status={status} />
             </div>
 
             {/* Assigned To Display */}
@@ -294,7 +322,9 @@ export default function ComplaintCard({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="unassigned">
-                          <span className="text-muted-foreground">Unassigned</span>
+                          <span className="text-muted-foreground">
+                            Unassigned
+                          </span>
                         </SelectItem>
                         {staffList.length > 0 ? (
                           staffList.map((staff) => (
@@ -326,10 +356,10 @@ export default function ComplaintCard({
         </div>
 
         {/* Right Side: Image */}
-        {complaint.photoUrl ? (
+        {photoUrl ? (
           <div className="relative h-64 md:h-auto">
             <Image
-              src={complaint.photoUrl}
+              src={photoUrl}
               alt={complaint.title}
               fill
               className="object-cover"

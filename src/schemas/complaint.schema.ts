@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ComplaintCategory, Priority, Status } from "@prisma/client";
+import { complaintPhotoKeySchema } from "~/schemas/upload.schema";
 
 // ============================================
 // Complaint Schemas
@@ -25,7 +26,7 @@ export const createComplaintSchema = z.object({
   location: z.string().max(500).trim().optional().nullable(),
   latitude: z.number().min(-90).max(90).optional().nullable(),
   longitude: z.number().min(-180).max(180).optional().nullable(),
-  photoUrl: z.string().url("Invalid photo URL").optional().nullable(),
+  photoKey: complaintPhotoKeySchema.optional().nullable(),
   departmentId: z.number().int().positive().optional().nullable(),
 });
 

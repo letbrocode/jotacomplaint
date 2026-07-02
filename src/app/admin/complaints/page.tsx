@@ -14,6 +14,7 @@ import { RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Skeleton } from "~/components/ui/skeleton";
+import { createComplaintReadUrlMap } from "~/server/storage/s3.service";
 
 export const dynamic = "force-dynamic";
 
@@ -57,16 +58,27 @@ export default async function AdminComplaintsPage({ searchParams }: PageProps) {
   };
 
   // Fetch data in parallel
-  const [complaintsData, stats, departments, staffList] = await Promise.all([
-    getComplaintsForRole(session.user.id, "ADMIN", filters, {
-      take: 50,
-    }),
-    getComplaintStatusCountsForRole(session.user.id, "ADMIN", filters),
-    getAllDepartments(),
-    getStaffMembers(),
-  ]);
+  const [complaintsResult, statsResult, departmentsResult, staffResult] =
+    await Promise.allSettled([
+      getComplaintsForRole(session.user.id, "ADMIN", filters, {
+        take: 50,
+      }),
+      getComplaintStatusCountsForRole(session.user.id, "ADMIN", filters),
+      getAllDepartments(),
+      getStaffMembers(),
+    ]);
 
+  if (complaintsResult.status === "rejected") throw complaintsResult.reason;
+  if (statsResult.status === "rejected") throw statsResult.reason;
+  if (departmentsResult.status === "rejected") throw departmentsResult.reason;
+  if (staffResult.status === "rejected") throw staffResult.reason;
+
+  const complaintsData = complaintsResult.value;
+  const stats = statsResult.value;
+  const departments = departmentsResult.value;
+  const staffList = staffResult.value;
   const { data: complaints, total } = complaintsData;
+  const photoUrls = await createComplaintReadUrlMap(complaints);
 
   return (
     <div className="space-y-8 px-4 py-8 sm:px-6 lg:px-8">
@@ -91,19 +103,27 @@ export default async function AdminComplaintsPage({ searchParams }: PageProps) {
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <div className="bg-card rounded-lg border p-4 shadow-sm">
-          <p className="text-muted-foreground text-sm font-medium">Filtered Total</p>
+          <p className="text-muted-foreground text-sm font-medium">
+            Filtered Total
+          </p>
           <p className="text-2xl font-bold">{stats.total}</p>
         </div>
         <div className="bg-card rounded-lg border p-4 shadow-sm">
-          <p className="text-muted-foreground text-sm font-medium text-yellow-600">Pending</p>
+          <p className="text-muted-foreground text-sm font-medium text-yellow-600">
+            Pending
+          </p>
           <p className="text-2xl font-bold">{stats.pending}</p>
         </div>
         <div className="bg-card rounded-lg border p-4 shadow-sm">
-          <p className="text-muted-foreground text-sm font-medium text-blue-600">In Progress</p>
+          <p className="text-muted-foreground text-sm font-medium text-blue-600">
+            In Progress
+          </p>
           <p className="text-2xl font-bold">{stats.inProgress}</p>
         </div>
         <div className="bg-card rounded-lg border p-4 shadow-sm">
-          <p className="text-muted-foreground text-sm font-medium text-green-600">Resolved</p>
+          <p className="text-muted-foreground text-sm font-medium text-green-600">
+            Resolved
+          </p>
           <p className="text-2xl font-bold">{stats.resolved}</p>
         </div>
       </div>
@@ -140,6 +160,7 @@ export default async function AdminComplaintsPage({ searchParams }: PageProps) {
               detailHref={`/admin/complaints/${complaint.id}`}
               canUpdateStatus
               canAssignStaff
+              photoUrl={photoUrls[complaint.id]}
             />
           ))}
         </div>

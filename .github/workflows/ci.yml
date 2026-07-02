@@ -60,9 +60,10 @@ jobs:
           echo "NEXT_PUBLIC_PUSHER_KEY=ci-pusher-key" >> .env
           echo "NEXT_PUBLIC_PUSHER_CLUSTER=mt1" >> .env
           echo "RESEND_API_KEY=re_ci_fake_key" >> .env
-          echo "IMAGEKIT_PUBLIC_KEY=ci_fake" >> .env
-          echo "IMAGEKIT_PRIVATE_KEY=ci_fake" >> .env
-          echo "IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/fake" >> .env
+          echo "AWS_REGION=us-east-1" >> .env
+          echo "AWS_ACCESS_KEY_ID=ci-fake-access-key" >> .env
+          echo "AWS_SECRET_ACCESS_KEY=ci-fake-secret-key" >> .env
+          echo "S3_UPLOAD_BUCKET=jotacomplaint-ci-fake" >> .env
           echo "SKIP_ENV_VALIDATION=1" >> .env
 
       - name: Enable pg_trgm extension

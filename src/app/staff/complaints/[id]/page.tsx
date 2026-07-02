@@ -2,6 +2,7 @@ import { auth } from "~/server/auth";
 import { redirect, notFound } from "next/navigation";
 import { getComplaintById } from "~/server/services/complaint.service";
 import ComplaintStaffDetails from "./ComplaintStaffDetails";
+import { createComplaintReadUrl } from "~/server/storage/s3.service";
 
 export const dynamic = "force-dynamic";
 
@@ -25,10 +26,14 @@ export default async function StaffComplaintDetailsPage({ params }: PageProps) {
       notFound();
     }
 
+    const photoUrl = await createComplaintReadUrl(complaint.photoKey).catch(
+      () => null,
+    );
+
     // Ensure staff member is assigned or in the same department (handled by service)
     return (
       <div className="container mx-auto px-4 py-8">
-        <ComplaintStaffDetails complaint={complaint} />
+        <ComplaintStaffDetails complaint={complaint} photoUrl={photoUrl} />
       </div>
     );
   } catch (err) {

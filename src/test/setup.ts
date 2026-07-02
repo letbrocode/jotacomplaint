@@ -30,3 +30,8 @@ vi.mock("~/server/jobs/queues", () => ({
 vi.mock("~/server/services/notification.service", () => ({
   getUnreadCount: vi.fn().mockResolvedValue(0),
 }));
+
+// NOTE: ~/server/storage/s3.service is intentionally NOT mocked globally.
+// s3.service.test.ts mocks its own dependencies (~/env, @aws-sdk/s3-request-presigner)
+// so it can test the real service implementation.
+// If a future service test imports s3 functions indirectly, add a local vi.mock there.

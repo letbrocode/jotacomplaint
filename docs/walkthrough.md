@@ -75,7 +75,7 @@ To design and develop a scalable, role-based web application that digitizes and 
 - Web application accessible via browser (no native mobile app)
 - Three distinct user portals: Citizen Dashboard, Staff Portal, Admin Dashboard
 - Complaint lifecycle: Submit → Assign → In Progress → Resolve
-- Photo uploads with cloud CDN (ImageKit)
+- Photo uploads with private AWS S3 storage (presigned URLs)
 - Interactive map with Leaflet for complaint location and public facilities visualization
 - Analytics dashboard with charts (Recharts) for admin
 - Notification system (in-app)
@@ -157,7 +157,7 @@ The project was developed using the **Agile methodology** with iterative feature
 - Implemented responsive layouts for all three portals
 - Integrated **Recharts** for analytics charts in admin dashboard
 - Integrated **Leaflet** + **React Leaflet** for interactive maps
-- Integrated **ImageKit** for photo upload, optimization, and CDN delivery
+- Integrated **AWS S3** for private photo upload via presigned URLs
 - Built complaint cards, notification badges, user avatars, department dialogs, staff dialogs
 
 ### Phase 7: Testing & Polish
@@ -202,8 +202,8 @@ The project was developed using the **Agile methodology** with iterative feature
          
          External Services:
          ┌──────────┐   ┌─────────────┐
-         │ ImageKit │   │ Google Maps │
-         │  (CDN)   │   │   API       │
+         │  AWS S3  │   │ Google Maps │
+         │ (Storage)│   │   API       │
          └──────────┘   └─────────────┘
 ```
 
@@ -241,7 +241,7 @@ Complaint >── Department
 | Model | Key Fields | Purpose |
 |---|---|---|
 | `User` | id, name, email, password, role, isActive | All user accounts (citizen/staff/admin) |
-| `Complaint` | id, title, details, category, location, lat, lng, photoUrl, priority, status, userId, assignedToId, departmentId | Core complaint entity |
+| `Complaint` | id, title, details, category, location, lat, lng, photoKey, priority, status, userId, assignedToId, departmentId | Core complaint entity |
 | `Department` | id, name, description, email, phone, isActive | Municipal departments |
 | `Comment` | id, content, isInternal, complaintId, authorId | Discussion on complaints; `isInternal` hides from citizens |
 | `ComplaintActivity` | id, action, oldValue, newValue, comment, complaintId, userId | Immutable audit log |
@@ -277,7 +277,7 @@ Complaint >── Department
 | **Form Handling** | React Hook Form + Zod | 7.x / 3.x | Validated, performant forms |
 | **Charts** | Recharts | 3.x | Analytics charts in admin dashboard |
 | **Maps** | Leaflet + React Leaflet | 1.9 / 5.x | Interactive maps with markers |
-| **Image Uploads** | ImageKit + @imagekit/next | 2.x | CDN-backed image uploads with optimization |
+| **Image Uploads** | AWS S3 + @aws-sdk/client-s3 | 3.x | Private S3 storage with presigned upload/read URLs |
 | **Notifications UI** | Sonner | 2.x | Toast notifications |
 | **Icons** | Lucide React | 0.544 | Clean SVG icon library |
 | **Date Formatting** | date-fns | 4.x | Human-readable timestamps |
@@ -388,11 +388,11 @@ All data mutations happen through Next.js Server Actions (no exposed REST endpoi
 - `createStaff()` — creates USER with STAFF role + assigns to department
 
 ### Image Uploads
-ImageKit is integrated via `@imagekit/next`:
-- Client generates an upload token via `/api/imagekit-auth`
-- Images are uploaded directly to ImageKit CDN from the browser
-- The returned URL is stored in `Complaint.photoUrl`
-- Images are delivered via CDN with auto-optimization
+AWS S3 is integrated via `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner`:
+- Client requests a presigned PUT URL via `POST /api/uploads/presign`
+- Images are uploaded directly to a private S3 bucket from the browser using the presigned URL
+- The S3 object key is stored in `Complaint.photoKey` (not a URL)
+- Short-lived presigned GET URLs are generated server-side when images need to be displayed
 
 ### Map Integration
 - **Leaflet + React Leaflet** used for interactive maps
@@ -437,7 +437,7 @@ All forms use `react-hook-form` + `zod` schemas:
 - ✅ **Cloud-deployed** and accessible at: https://jotacomplaint.onrender.com/
 - ✅ **Responsive design** — works on desktop, tablet, and mobile
 - ✅ **Type-safe end-to-end** — TypeScript, Zod, Prisma generated types
-- ✅ **Photo evidence support** via ImageKit CDN
+- ✅ **Photo evidence support** via private AWS S3 storage with presigned URLs
 
 ---
 
@@ -531,7 +531,7 @@ A: We use React Leaflet (built on Leaflet.js) — an open-source mapping library
 A: The Next.js Middleware checks the session role on every request. If a USER tries to access `/admin`, they are redirected to `/unauthorized`. All server actions also re-verify the session role to prevent privilege escalation.
 
 **Q: How are images stored?**  
-A: Images are uploaded directly from the browser to ImageKit's CDN using a server-generated auth token. Only the resulting URL is stored in the database. This keeps the database lean and delivers images via CDN with automatic optimization (resizing, compression, format conversion).
+A: Images are uploaded directly from the browser to a private AWS S3 bucket using presigned PUT URLs. The server generates the presigned URL (with MIME type and size validation), and only the S3 object key is stored in the database. When the UI needs to render the image, the server generates a short-lived presigned GET URL. This keeps the bucket private and avoids storing expiring URLs in the database.
 
 **Q: Is the application responsive?**  
 A: Yes, fully. All pages use Tailwind CSS responsive classes (`sm:`, `md:`, `lg:`) with a mobile-first approach. The navigation collapses to a drawer (Sheet component) on mobile.

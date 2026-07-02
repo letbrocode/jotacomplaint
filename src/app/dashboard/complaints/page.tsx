@@ -15,6 +15,7 @@ import { Suspense } from "react";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
+import { createComplaintReadUrlMap } from "~/server/storage/s3.service";
 
 export const dynamic = "force-dynamic";
 
@@ -54,13 +55,21 @@ export default async function UserComplaintsPage({ searchParams }: PageProps) {
 
   // Run page fetch and accurate status counts in parallel —
   // counts come from DB aggregates, not the 50-item page slice.
-  const [complaintsData, stats] = await Promise.all([
-    getComplaintsForRole(session.user.id, "USER", filters, { take: 50 }),
-    getComplaintStatusCountsForRole(session.user.id, "USER"),
-    getAllDepartments(),
-  ]);
+  const [complaintsResult, statsResult, departmentsResult] =
+    await Promise.allSettled([
+      getComplaintsForRole(session.user.id, "USER", filters, { take: 50 }),
+      getComplaintStatusCountsForRole(session.user.id, "USER"),
+      getAllDepartments(),
+    ]);
 
+  if (complaintsResult.status === "rejected") throw complaintsResult.reason;
+  if (statsResult.status === "rejected") throw statsResult.reason;
+  if (departmentsResult.status === "rejected") throw departmentsResult.reason;
+
+  const complaintsData = complaintsResult.value;
+  const stats = statsResult.value;
   const { data: complaints, total } = complaintsData;
+  const photoUrls = await createComplaintReadUrlMap(complaints);
 
   return (
     <div className="space-y-6">
@@ -92,7 +101,9 @@ export default async function UserComplaintsPage({ searchParams }: PageProps) {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">All Complaints</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              All Complaints
+            </CardTitle>
             <FileText className="text-muted-foreground h-4 w-4" />
           </CardHeader>
           <CardContent>
@@ -150,9 +161,7 @@ export default async function UserComplaintsPage({ searchParams }: PageProps) {
       {complaints.length === 0 ? (
         <Card className="p-12 text-center">
           <FileText className="text-muted-foreground mx-auto mb-4 h-16 w-16 opacity-20" />
-          <h3 className="mb-2 text-lg font-semibold">
-            No complaints found
-          </h3>
+          <h3 className="mb-2 text-lg font-semibold">No complaints found</h3>
           <p className="text-muted-foreground mb-4 text-sm">
             Try adjusting your filters or submit a new complaint.
           </p>
@@ -170,6 +179,7 @@ export default async function UserComplaintsPage({ searchParams }: PageProps) {
               key={complaint.id}
               complaint={complaint}
               detailHref={`/dashboard/complaints/${complaint.id}`}
+              photoUrl={photoUrls[complaint.id]}
             />
           ))}
         </div>
