@@ -5,15 +5,18 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css"; // ADD THIS LINE
 
-// Fix default marker icon issue in Leaflet + Next.js
+// Fix default marker icon issue in Leaflet + Next.js.
+// Leaflet resolves icon paths via Webpack's url-loader at build time, which
+// doesn't exist in Next.js. We delete the broken _getIconUrl resolver and
+// point directly to self-hosted copies in /public/leaflet/ so the images are
+// served from the same origin — no CDN dependency, no CSP exception needed.
 delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)
   ._getIconUrl;
 
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconRetinaUrl: "/leaflet/marker-icon-2x.png",
+  iconUrl: "/leaflet/marker-icon.png",
+  shadowUrl: "/leaflet/marker-shadow.png",
 });
 
 type LatLng = {
