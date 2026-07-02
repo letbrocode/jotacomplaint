@@ -28,6 +28,7 @@ import {
 import { getUnreadCount } from "~/server/services/notification.service";
 import { invalidateCache, CacheKeys } from "~/lib/cache";
 import { logger } from "~/lib/logger";
+import { sanitizeKeySegment } from "~/server/storage/s3.service";
 import {
   complaintListInclude,
   type ComplaintWithRelations,
@@ -223,6 +224,18 @@ export async function createComplaint(
   data: CreateComplaintInput,
   userId: string,
 ) {
+  // Guard: photoKey must belong to the submitting user.
+  // The key is generated server-side as complaints/{sanitized-userId}/{uuid}.ext,
+  // so any key not starting with this user's prefix is an IDOR attempt.
+  if (data.photoKey) {
+    const expectedPrefix = `complaints/${sanitizeKeySegment(userId)}/`;
+    if (!data.photoKey.startsWith(expectedPrefix)) {
+      throw new ForbiddenError(
+        "The uploaded photo does not belong to this user",
+      );
+    }
+  }
+
   // Determine SLA due date
   const slaPolicy = await db.sLAPolicy.findFirst({
     where: { category: data.category, priority: data.priority, isActive: true },

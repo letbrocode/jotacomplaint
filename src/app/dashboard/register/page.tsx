@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -92,13 +92,26 @@ export default function RegisterComplaint() {
   >([]);
   const [showSimilar, setShowSimilar] = useState(true);
 
+  // Tracks the S3 key of a photo that has been uploaded but not yet committed
+  // to the DB. Used to delete orphaned objects when the user removes the photo
+  // or navigates away without submitting.
+  const pendingKeyRef = useRef<string | null>(null);
+
   useEffect(() => {
     return () => {
-      if (photoPreviewUrl) {
-        URL.revokeObjectURL(photoPreviewUrl);
+      // Revoke the object URL to release browser memory
+      if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+
+      // Delete the S3 object if the form was abandoned before submission
+      if (pendingKeyRef.current) {
+        void fetch(
+          `/api/uploads/${encodeURIComponent(pendingKeyRef.current)}`,
+          { method: "DELETE" },
+        );
       }
     };
-  }, [photoPreviewUrl]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // empty deps — intentionally runs only on unmount
 
   const form = useForm<ComplaintFormValues>({
     resolver: zodResolver(complaintSchema),
@@ -166,6 +179,8 @@ export default function RegisterComplaint() {
   );
 
   const onSubmit = async (data: ComplaintFormValues) => {
+    // Clear the ref so the unmount effect does not delete the committed key
+    pendingKeyRef.current = null;
     setIsSubmitting(true);
 
     try {
@@ -552,6 +567,7 @@ export default function RegisterComplaint() {
 
                 <Dropzone
                   onUploadComplete={(upload) => {
+                    pendingKeyRef.current = upload?.objectKey ?? null;
                     setPhotoKey(upload?.objectKey ?? "");
                     setPhotoPreviewUrl(upload?.previewUrl ?? "");
                     form.setValue("photoKey", upload?.objectKey ?? "");
@@ -574,6 +590,14 @@ export default function RegisterComplaint() {
                       size="sm"
                       className="absolute top-2 right-2"
                       onClick={() => {
+                        // Fire-and-forget: delete the orphaned S3 object
+                        if (photoKey) {
+                          void fetch(
+                            `/api/uploads/${encodeURIComponent(photoKey)}`,
+                            { method: "DELETE" },
+                          );
+                          pendingKeyRef.current = null;
+                        }
                         setPhotoKey("");
                         setPhotoPreviewUrl("");
                         form.setValue("photoKey", "");

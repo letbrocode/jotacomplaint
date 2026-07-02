@@ -31,14 +31,23 @@ const Dropzone = ({
   const xhrRef = useRef<XMLHttpRequest | null>(null);
 
   const createUploadUrl = async (file: File): Promise<PresignResponse> => {
-    const response = await fetch("/api/uploads/presign", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contentType: file.type,
-        fileSize: file.size,
-      }),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
+    let response: Response;
+    try {
+      response = await fetch("/api/uploads/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contentType: file.type,
+          fileSize: file.size,
+        }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       throw new Error(`Upload request failed: ${await response.text()}`);

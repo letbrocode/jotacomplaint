@@ -1,12 +1,14 @@
 import { randomUUID } from "node:crypto";
 import {
+  DeleteObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { unstable_cache } from "next/cache";
 import { env } from "~/env";
-import { AppError, ValidationError } from "~/lib/errors";
+import { AppError, ForbiddenError, ValidationError } from "~/lib/errors";
 import {
   allowedImageMimeTypes,
   MAX_UPLOAD_FILE_SIZE,
@@ -65,6 +67,8 @@ function getS3Client() {
       accessKeyId: config.accessKeyId,
       secretAccessKey: config.secretAccessKey,
     },
+    // Retry on transient S3 errors (503 SlowDown, network blips)
+    maxAttempts: 3,
   });
 
   return { client: s3Client, bucket: config.bucket };
@@ -79,8 +83,25 @@ function getFileExtension(contentType: PresignUploadInput["contentType"]) {
   return extension;
 }
 
-function sanitizeKeySegment(value: string) {
+export function sanitizeKeySegment(value: string) {
   return value.replace(/[^A-Za-z0-9_-]/g, "_");
+}
+
+/**
+ * Validates that a raw (URL-encoded) key is well-formed AND belongs to the
+ * requesting user. Throws ForbiddenError if the key targets another user's
+ * prefix — prevents IDOR on delete and on complaint submission.
+ */
+export function parseAndValidateKey(rawKey: string, userId: string): string {
+  const key = decodeURIComponent(rawKey);
+  const expectedPrefix = `complaints/${sanitizeKeySegment(userId)}/`;
+  if (!key.startsWith(expectedPrefix)) throw new ForbiddenError();
+  return key;
+}
+
+export async function deleteComplaintObject(key: string): Promise<void> {
+  const { client, bucket } = getS3Client();
+  await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
 }
 
 export function validateComplaintUpload(input: PresignUploadInput) {
@@ -131,20 +152,26 @@ export async function createComplaintUploadUrl({
   };
 }
 
+// Cache presigned GET URLs for 240s — expires before the 300s presign window.
+// This eliminates N redundant SDK calls on every list-page render when the
+// same photoKey appears across multiple requests within the cache window.
+const _signReadUrl = unstable_cache(
+  async (photoKey: string): Promise<string> => {
+    const { client, bucket } = getS3Client();
+    const command = new GetObjectCommand({ Bucket: bucket, Key: photoKey });
+    return getSignedUrl(client, command, {
+      expiresIn: READ_URL_EXPIRES_IN_SECONDS,
+    });
+  },
+  ["s3-read-url"],
+  { revalidate: 240 },
+);
+
 export async function createComplaintReadUrl(
   photoKey: string | null | undefined,
-) {
+): Promise<string | null> {
   if (!photoKey) return null;
-
-  const { client, bucket } = getS3Client();
-  const command = new GetObjectCommand({
-    Bucket: bucket,
-    Key: photoKey,
-  });
-
-  return getSignedUrl(client, command, {
-    expiresIn: READ_URL_EXPIRES_IN_SECONDS,
-  });
+  return _signReadUrl(photoKey);
 }
 
 export async function createComplaintReadUrlMap<
