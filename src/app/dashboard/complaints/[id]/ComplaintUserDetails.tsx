@@ -24,7 +24,6 @@ import { format, formatDistanceToNow } from "date-fns";
 import ImageModal from "~/components/image-modal";
 import { toast } from "sonner";
 import { createCommentAction } from "~/server/actions/comment.actions";
-import { useRealtimeComplaint } from "~/hooks/use-realtime-complaint";
 import { SlaCountdown } from "~/components/sla-countdown";
 import type { ComplaintDetailsWithRelations } from "~/types/complaint";
 
@@ -40,11 +39,6 @@ export default function ComplaintUserDetails({
   const router = useRouter();
   const [updating, setUpdating] = useState(false);
   const [newComment, setNewComment] = useState("");
-
-  // Real-time updates
-  useRealtimeComplaint(complaint.id, {
-    onUpdate: () => router.refresh(),
-  });
 
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
@@ -324,7 +318,7 @@ export default function ComplaintUserDetails({
             <CardContent className="text-muted-foreground space-y-2 text-xs">
               <p>1. Our team reviews your complaint.</p>
               <p>2. A staff member is assigned to investigate.</p>
-              <p>3. You&apos;ll receive updates here in real-time.</p>
+              <p>3. Check back here for status updates and staff replies.</p>
               <p>4. Once fixed, the status will change to Resolved.</p>
             </CardContent>
           </Card>

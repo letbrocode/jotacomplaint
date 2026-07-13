@@ -53,12 +53,6 @@ jobs:
           echo "UPSTASH_REDIS_REST_TOKEN=ci-fake-token" >> .env
           echo "REDIS_URL=redis://localhost:6379" >> .env
           echo "NEXT_PUBLIC_APP_URL=http://localhost:3000" >> .env
-          echo "PUSHER_APP_ID=ci-pusher-app-id" >> .env
-          echo "PUSHER_KEY=ci-pusher-key" >> .env
-          echo "PUSHER_SECRET=ci-pusher-secret" >> .env
-          echo "PUSHER_CLUSTER=mt1" >> .env
-          echo "NEXT_PUBLIC_PUSHER_KEY=ci-pusher-key" >> .env
-          echo "NEXT_PUBLIC_PUSHER_CLUSTER=mt1" >> .env
           echo "RESEND_API_KEY=re_ci_fake_key" >> .env
           echo "AWS_REGION=us-east-1" >> .env
           echo "AWS_ACCESS_KEY_ID=ci-fake-access-key" >> .env

@@ -19,12 +19,6 @@ export const env = createEnv({
     // BullMQ Redis (TCP — Railway/Render/local)
     REDIS_URL: z.string().optional().default("redis://localhost:6379"),
 
-    // Pusher (server-side)
-    PUSHER_APP_ID: z.string().optional(),
-    PUSHER_KEY: z.string().optional(),
-    PUSHER_SECRET: z.string().optional(),
-    PUSHER_CLUSTER: z.string().optional(),
-
     // Resend email
     RESEND_API_KEY: z.string().optional(),
     EMAIL_FROM: z.string().optional(),
@@ -37,10 +31,6 @@ export const env = createEnv({
   },
 
   client: {
-    // Pusher (browser)
-    NEXT_PUBLIC_PUSHER_KEY: z.string().optional(),
-    NEXT_PUBLIC_PUSHER_CLUSTER: z.string().optional(),
-
     // App URL
     NEXT_PUBLIC_APP_URL: z.string().url().optional(),
   },
@@ -54,11 +44,6 @@ export const env = createEnv({
     UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
     REDIS_URL: process.env.REDIS_URL,
 
-    PUSHER_APP_ID: process.env.PUSHER_APP_ID,
-    PUSHER_KEY: process.env.PUSHER_KEY,
-    PUSHER_SECRET: process.env.PUSHER_SECRET,
-    PUSHER_CLUSTER: process.env.PUSHER_CLUSTER,
-
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     EMAIL_FROM: process.env.EMAIL_FROM,
 
@@ -67,8 +52,6 @@ export const env = createEnv({
     AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
     S3_UPLOAD_BUCKET: process.env.S3_UPLOAD_BUCKET,
 
-    NEXT_PUBLIC_PUSHER_KEY: process.env.NEXT_PUBLIC_PUSHER_KEY,
-    NEXT_PUBLIC_PUSHER_CLUSTER: process.env.NEXT_PUBLIC_PUSHER_CLUSTER,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   },
 

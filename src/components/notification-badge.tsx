@@ -25,13 +25,6 @@ export function NotificationBadge() {
 
     if (session?.user) {
       void fetchUnreadCount();
-
-      // Poll every 30 seconds for new notifications
-      const interval = setInterval(() => {
-        void fetchUnreadCount();
-      }, 30000);
-
-      return () => clearInterval(interval);
     }
   }, [session]);
 

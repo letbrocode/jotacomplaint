@@ -2,8 +2,6 @@ import { Worker } from "bullmq";
 import { ioredis } from "~/lib/ioredis";
 import { db } from "~/server/db";
 import { ActivityAction, NotificationType } from "@prisma/client";
-import { triggerUserNotification, triggerDashboardRefresh } from "~/lib/pusher";
-import { getUnreadCount } from "~/server/services/notification.service";
 import type { EscalationJobData } from "../queues";
 
 // ============================================
@@ -32,7 +30,9 @@ export const escalationWorker = new Worker<EscalationJobData>(
       return;
     }
 
-    console.log(`[escalation-worker] Escalating ${overdueComplaints.length} complaints`);
+    console.log(
+      `[escalation-worker] Escalating ${overdueComplaints.length} complaints`,
+    );
 
     for (const complaint of overdueComplaints) {
       await db.$transaction(async (tx) => {
@@ -70,24 +70,7 @@ export const escalationWorker = new Worker<EscalationJobData>(
           },
         });
       });
-
-      // Push real-time update to user
-      try {
-        const unreadCount = await getUnreadCount(complaint.userId);
-        await triggerUserNotification(complaint.userId, {
-          title: "Complaint Escalated",
-          message: `"${complaint.title}" has been escalated`,
-          unreadCount,
-        });
-      } catch {
-        // Non-fatal — Pusher trigger failure shouldn't block escalation
-      }
     }
-
-    // Refresh admin dashboard
-    try {
-      await triggerDashboardRefresh();
-    } catch {}
   },
   { connection: ioredis },
 );

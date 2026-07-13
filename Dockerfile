@@ -9,12 +9,6 @@ WORKDIR /app
 ENV SKIP_ENV_VALIDATION=1
 ENV UPSTASH_REDIS_REST_URL=https://fake-docker.upstash.io
 ENV UPSTASH_REDIS_REST_TOKEN=fake-docker-token
-ENV PUSHER_APP_ID=fake-app-id
-ENV PUSHER_KEY=fake-key
-ENV PUSHER_SECRET=fake-secret
-ENV PUSHER_CLUSTER=mt1
-ENV NEXT_PUBLIC_PUSHER_KEY=fake-key
-ENV NEXT_PUBLIC_PUSHER_CLUSTER=mt1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate

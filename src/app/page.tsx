@@ -35,7 +35,8 @@ import { getPublicStats } from "~/server/services/analytics.service";
 
 export const metadata = {
   title: "JotaComplaint — Municipal Issue Reporting & Tracking",
-  description: "A modern platform for citizens to report municipal issues and for administrators to efficiently manage and resolve complaints in real-time.",
+  description:
+    "A modern platform for citizens to report municipal issues and for administrators to efficiently manage and resolve complaints.",
 };
 
 export default async function LandingPage() {
@@ -189,7 +190,7 @@ export default async function LandingPage() {
           <p className="text-muted-foreground max-w-2xl text-base sm:text-lg md:text-xl">
             A modern platform for citizens to report municipal issues and for
             administrators to efficiently manage and resolve complaints in
-            real-time.
+            current status.
           </p>
 
           <div className="flex w-full flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-4">
@@ -293,11 +294,11 @@ export default async function LandingPage() {
                   <Bell className="h-5 w-5 text-green-500 sm:h-6 sm:w-6" />
                 </div>
                 <CardTitle className="text-lg sm:text-xl">
-                  Real-time Notifications
+                  Complaint Notifications
                 </CardTitle>
                 <CardDescription className="text-sm sm:text-base">
-                  Get instant updates on complaint status changes, assignments,
-                  and resolutions
+                  Get complaint updates for status changes, assignments, and
+                  resolutions
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -416,7 +417,7 @@ export default async function LandingPage() {
                 Track & Resolve
               </h3>
               <p className="text-muted-foreground mt-2 text-sm sm:text-base">
-                Staff work on issues while citizens receive real-time updates
+                Staff work on issues while citizens receive status updates
                 until resolution
               </p>
             </div>
@@ -459,7 +460,7 @@ export default async function LandingPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-500" />
-                    <span>Track status in real-time</span>
+                    <span>Track complaint status</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-500" />

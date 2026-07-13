@@ -5,7 +5,6 @@ import { requireAuth } from "~/lib/auth-guards";
 import { actionOk, actionErr } from "~/lib/api";
 import { createCommentSchema } from "~/schemas/comment.schema";
 import { createComment } from "~/server/services/comment.service";
-import { triggerComplaintUpdate } from "~/lib/pusher";
 
 export async function createCommentAction(raw: unknown) {
   try {
@@ -18,12 +17,6 @@ export async function createCommentAction(raw: unknown) {
       session.user.role,
       session.user.name ?? session.user.email ?? "Unknown",
     );
-
-    // Trigger real-time update for the complaint detail page
-    await triggerComplaintUpdate(data.complaintId, {
-      id: data.complaintId,
-      commentAdded: true,
-    }).catch(() => null);
 
     revalidatePath(`/admin/complaints/${data.complaintId}`);
     revalidatePath(`/dashboard/complaints/${data.complaintId}`);

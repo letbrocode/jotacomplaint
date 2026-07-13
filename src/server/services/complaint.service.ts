@@ -20,12 +20,6 @@ import type {
   UpdateComplaintInput,
 } from "~/schemas/complaint.schema";
 import { emailQueue } from "~/server/jobs/queues";
-import {
-  triggerComplaintUpdate,
-  triggerUserNotification,
-  triggerDashboardRefresh,
-} from "~/lib/pusher";
-import { getUnreadCount } from "~/server/services/notification.service";
 import { invalidateCache, CacheKeys } from "~/lib/cache";
 import { logger } from "~/lib/logger";
 import { sanitizeKeySegment } from "~/server/storage/s3.service";
@@ -307,7 +301,6 @@ export async function createComplaint(
         CacheKeys.dashboardStats,
         CacheKeys.departmentBreakdown,
       ).catch(() => null);
-      void triggerDashboardRefresh().catch(() => null);
 
       return complaint;
     });
@@ -533,27 +526,7 @@ async function postUpdateSideEffects({
       });
     }
 
-    // 2. Pusher Real-time
-    void triggerComplaintUpdate(complaint.id, {
-      id: complaint.id,
-      status: complaint.status,
-      assignedToId: complaint.assignedToId,
-      updatedAt: complaint.updatedAt.toISOString(),
-    }).catch(() => null);
-
-    void getUnreadCount(complaint.userId)
-      .then((unreadCount) =>
-        triggerUserNotification(complaint.userId, {
-          title: "Complaint Updated",
-          message: `Your complaint status changed to ${complaint.status}`,
-          unreadCount,
-        }),
-      )
-      .catch(() => null);
-
-    void triggerDashboardRefresh().catch(() => null);
-
-    // 3. Cache Invalidation
+    // 2. Cache Invalidation
     void invalidateCache(
       CacheKeys.dashboardStats,
       CacheKeys.departmentBreakdown,

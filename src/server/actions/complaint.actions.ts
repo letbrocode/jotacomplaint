@@ -10,7 +10,6 @@ import {
   deleteComplaint,
 } from "~/server/services/complaint.service";
 import { findSimilarComplaints } from "~/server/services/duplicate.service";
-import { triggerDashboardRefresh } from "~/lib/pusher";
 import { invalidateCache, CacheKeys } from "~/lib/cache";
 
 // ============================================
@@ -57,7 +56,6 @@ export async function deleteComplaintAction(id: string) {
     await requireRole("ADMIN");
     await deleteComplaint(id);
     await invalidateCache(CacheKeys.dashboardStats, CacheKeys.departmentBreakdown);
-    await triggerDashboardRefresh().catch(() => null);
     revalidatePath("/admin/complaints");
     return actionOk(undefined);
   } catch (err) {

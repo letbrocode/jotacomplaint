@@ -33,8 +33,6 @@ const buildCsp = () => {
     "frame-ancestors 'none'",
     [
       "connect-src 'self'",
-      "https://*.pusher.com",
-      "wss://*.pusher.com",
       "https://*.upstash.io",
       s3Origin,
     ]
