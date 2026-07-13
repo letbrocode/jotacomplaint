@@ -1,12 +1,5 @@
 import { vi } from "vitest";
 
-// Mock Pusher
-vi.mock("~/lib/pusher", () => ({
-  triggerComplaintUpdate: vi.fn().mockResolvedValue({}),
-  triggerUserNotification: vi.fn().mockResolvedValue({}),
-  triggerDashboardRefresh: vi.fn().mockResolvedValue({}),
-}));
-
 // Mock Redis/Cache — pass-through: getCached just calls the fetcher directly
 vi.mock("~/lib/cache", () => ({
   invalidateCache: vi.fn().mockResolvedValue({}),

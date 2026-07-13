@@ -16,29 +16,41 @@ import {
   MapPin,
   TrendingUp,
 } from "lucide-react";
-import { getPublicStats, getTrendData, getDepartmentBreakdown } from "~/server/services/analytics.service";
+import {
+  getPublicStats,
+  getTrendData,
+  getDepartmentBreakdown,
+} from "~/server/services/analytics.service";
 import { getPublicComplaints } from "~/server/services/complaint.service";
 import { formatDistanceToNow } from "date-fns";
-import { PublicTrendChart, PublicDepartmentChart } from "~/components/public-charts";
+import {
+  PublicTrendChart,
+  PublicDepartmentChart,
+} from "~/components/public-charts";
 
 export const metadata = {
   title: "Transparency Portal | JotaComplaint",
-  description: "Public overview of municipal complaint resolution progress and community impact.",
+  description:
+    "Public overview of municipal complaint resolution progress and community impact.",
 };
 
 export default async function TransparencyPage() {
-  const [statsResult, trendResult, deptResult, complaintsResult] = await Promise.allSettled([
-    getPublicStats(),
-    getTrendData(30),
-    getDepartmentBreakdown(),
-    getPublicComplaints(10),
-  ]);
+  const [statsResult, trendResult, deptResult, complaintsResult] =
+    await Promise.allSettled([
+      getPublicStats(),
+      getTrendData(30),
+      getDepartmentBreakdown(),
+      getPublicComplaints(10),
+    ]);
 
-  const stats = statsResult.status === "fulfilled" ? statsResult.value : { users: 0, resolved: 0, avgHours: 0 };
+  const stats =
+    statsResult.status === "fulfilled"
+      ? statsResult.value
+      : { users: 0, resolved: 0, avgHours: 0 };
   const trendData = trendResult.status === "fulfilled" ? trendResult.value : [];
   const deptData = deptResult.status === "fulfilled" ? deptResult.value : [];
-  const recentComplaints = complaintsResult.status === "fulfilled" ? complaintsResult.value : [];
-
+  const recentComplaints =
+    complaintsResult.status === "fulfilled" ? complaintsResult.value : [];
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -49,54 +61,69 @@ export default async function TransparencyPage() {
             Back to Home
           </Link>
           <h1 className="text-xl font-bold">Transparency Portal</h1>
-          <div className="w-24"></div> {/* Spacer */}
+          <div className="w-24"></div>
         </div>
       </header>
 
       <main className="container mx-auto max-w-7xl flex-1 space-y-8 px-4 py-8 sm:px-6 lg:px-8">
-        {/* Intro */}
         <div className="space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">Community Impact</h2>
+          <h2 className="text-3xl font-bold tracking-tight">
+            Community Impact
+          </h2>
           <p className="text-muted-foreground text-lg">
-            Real-time data on how we&apos;re working together to improve our city.
+            Published data on how we&apos;re working together to improve our
+            city.
           </p>
         </div>
 
-        {/* Top Stats */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Citizens</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Total Citizens
+              </CardTitle>
               <CheckCircle2 className="text-muted-foreground h-4 w-4" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.users.toLocaleString()}</div>
+              <div className="text-2xl font-bold">
+                {stats.users.toLocaleString()}
+              </div>
               <p className="text-muted-foreground text-xs">Active reporters</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Resolved Issues</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Resolved Issues
+              </CardTitle>
               <TrendingUp className="text-muted-foreground h-4 w-4" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.resolved.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-green-600">
+                {stats.resolved.toLocaleString()}
+              </div>
               <p className="text-muted-foreground text-xs">Total cases closed</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg. Resolution</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Avg. Resolution
+              </CardTitle>
               <Clock className="text-muted-foreground h-4 w-4" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{stats.avgHours}h</div>
+              <div className="text-2xl font-bold text-blue-600">
+                {stats.avgHours}h
+              </div>
               <p className="text-muted-foreground text-xs">From report to fix</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Departments</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Active Departments
+              </CardTitle>
               <BarChart3 className="text-muted-foreground h-4 w-4" />
             </CardHeader>
             <CardContent>
@@ -106,30 +133,32 @@ export default async function TransparencyPage() {
           </Card>
         </div>
 
-        {/* Charts Section */}
         <div className="grid gap-6 md:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>Resolution Activity (Last 30 Days)</CardTitle>
-              <CardDescription>Daily volume of reported vs resolved issues.</CardDescription>
+              <CardDescription>
+                Daily volume of reported vs resolved issues.
+              </CardDescription>
             </CardHeader>
             <CardContent className="h-[300px]">
-                <PublicTrendChart data={trendData} />
+              <PublicTrendChart data={trendData} />
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
               <CardTitle>Issues by Department</CardTitle>
-              <CardDescription>Current workload distribution across the city.</CardDescription>
+              <CardDescription>
+                Current workload distribution across the city.
+              </CardDescription>
             </CardHeader>
             <CardContent className="h-[300px]">
-                 <PublicDepartmentChart data={deptData} />
+              <PublicDepartmentChart data={deptData} />
             </CardContent>
           </Card>
         </div>
 
-        {/* Recent Successes */}
         <div className="space-y-4">
           <h3 className="text-2xl font-bold">Recent Successes</h3>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -137,14 +166,20 @@ export default async function TransparencyPage() {
               <Card key={complaint.id}>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <Badge variant={complaint.status === "RESOLVED" ? "default" : "secondary"}>
+                    <Badge
+                      variant={
+                        complaint.status === "RESOLVED" ? "default" : "secondary"
+                      }
+                    >
                       {complaint.status}
                     </Badge>
                     <span className="text-muted-foreground text-xs">
                       {formatDistanceToNow(new Date(complaint.createdAt))} ago
                     </span>
                   </div>
-                  <CardTitle className="line-clamp-1 text-lg">{complaint.title}</CardTitle>
+                  <CardTitle className="line-clamp-1 text-lg">
+                    {complaint.title}
+                  </CardTitle>
                   <CardDescription className="flex items-center gap-1">
                     <MapPin className="h-3 w-3" />
                     {complaint.location ?? "Unknown Location"}
@@ -152,23 +187,27 @@ export default async function TransparencyPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground text-xs">
-                    Department: <span className="text-foreground font-medium">{complaint.department?.name ?? "General"}</span>
+                    Department:{" "}
+                    <span className="text-foreground font-medium">
+                      {complaint.department?.name ?? "General"}
+                    </span>
                   </p>
                 </CardContent>
               </Card>
             ))}
           </div>
           <div className="flex justify-center pt-4">
-             <Button variant="outline" asChild>
-                <Link href="/signup">Sign up to help your community</Link>
-             </Button>
+            <Button variant="outline" asChild>
+              <Link href="/signup">Sign up to help your community</Link>
+            </Button>
           </div>
         </div>
       </main>
 
       <footer className="border-t py-6">
         <div className="container mx-auto max-w-7xl px-4 text-center text-sm text-muted-foreground">
-          © 2026 JotaComplaint Transparency Portal. All data is real-time.
+          Copyright 2026 JotaComplaint Transparency Portal. Data reflects the
+          latest published complaint activity.
         </div>
       </footer>
     </div>

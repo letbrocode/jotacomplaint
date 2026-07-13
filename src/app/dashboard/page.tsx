@@ -29,7 +29,6 @@ import {
 } from "recharts";
 import type { ComplaintWithRelations } from "~/types/complaint";
 import Link from "next/link";
-import { useRealtimeNotifications } from "~/hooks/use-realtime-notifications";
 
 const COLORS = ["#f59e0b", "#3b82f6", "#10b981"];
 
@@ -84,12 +83,6 @@ export default function UserDashboard() {
   useEffect(() => {
     void fetchComplaints();
   }, [fetchComplaints]);
-
-  useRealtimeNotifications(session?.user?.id ?? "", {
-    onNewNotification: () => {
-      void fetchComplaints();
-    },
-  });
 
   // Memoized statistics
   const stats = useMemo(() => {

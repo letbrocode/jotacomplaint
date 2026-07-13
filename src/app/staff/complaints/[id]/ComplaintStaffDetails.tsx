@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -39,7 +38,6 @@ import ImageModal from "~/components/image-modal";
 import { toast } from "sonner";
 import { updateComplaintAction } from "~/server/actions/complaint.actions";
 import { createCommentAction } from "~/server/actions/comment.actions";
-import { useRealtimeComplaint } from "~/hooks/use-realtime-complaint";
 import { SlaCountdown } from "~/components/sla-countdown";
 import { cn } from "~/lib/utils";
 import Link from "next/link";
@@ -55,15 +53,9 @@ export default function ComplaintStaffDetails({
   complaint,
   photoUrl,
 }: ComplaintStaffDetailsProps) {
-  const router = useRouter();
   const [updating, setUpdating] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [isInternalComment, setIsInternalComment] = useState(true);
-
-  // Real-time updates
-  useRealtimeComplaint(complaint.id, {
-    onUpdate: () => router.refresh(),
-  });
 
   const handleStatusUpdate = async (newStatus: Status) => {
     setUpdating(true);

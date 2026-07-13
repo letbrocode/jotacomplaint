@@ -9,7 +9,7 @@
 
 **JotaComplaint V2** is a production-grade municipal complaint management system.
 Stack: Next.js 16 (App Router + Turbopack), TypeScript, Prisma 6, Neon PostgreSQL,
-Upstash Redis, BullMQ, Pusher, Resend, shadcn/ui, Tailwind 4, Vitest, Playwright.
+Upstash Redis, BullMQ, Resend, shadcn/ui, Tailwind 4, Vitest, Playwright.
 
 
 ---
@@ -28,7 +28,7 @@ Upstash Redis, BullMQ, Pusher, Resend, shadcn/ui, Tailwind 4, Vitest, Playwright
 ### Always Do This
 - ✅ Keep route handlers thin: auth check → Zod parse → service call → map errors
 - ✅ Use `Promise.allSettled` (not `Promise.all`) when fetching multiple DB sources in RSC pages
-- ✅ Mock `~/lib/cache`, `~/lib/pusher`, `~/server/jobs/queues`, `~/server/services/notification.service` in all unit tests via `src/test/setup.ts`
+- ✅ Mock `~/lib/cache`, `~/server/jobs/queues`, `~/server/services/notification.service` in all unit tests via `src/test/setup.ts`
 - ✅ Use `vi.hoisted()` for mocks that reference variables defined before `vi.mock()`
 - ✅ Add `data-testid` attributes to any interactive element an E2E test needs to select
 - ✅ Use `test.setTimeout(90000)` for multi-step E2E flows (3-role lifecycle needs >30s)
@@ -49,8 +49,6 @@ Prisma DB (server/db.ts singleton)
 
 Side Effects (non-blocking, inside postUpdateSideEffects):
     ├── emailQueue.add(...)          ← BullMQ
-    ├── triggerComplaintUpdate(...)  ← Pusher
-    ├── triggerDashboardRefresh()    ← Pusher
     └── invalidateCache(...)         ← Upstash
 ```
 
@@ -131,11 +129,6 @@ npm run test:e2e          # requires running dev server or starts its own
 - Worker runs as a separate process: `npm run worker`
 - In CI the worker is not started — email/escalation jobs are queued but not processed (acceptable)
 
-### Pusher
-- Server: `lib/pusher.ts` — triggers events from API routes/actions
-- Client: `lib/pusher-client.ts` — browser singleton via `pusher-js`
-- In CI: fake key/cluster values — Pusher connections fail silently, no real-time in E2E
-
 ### Next.js `"use server"` Rule
 - `"use server"` on a file means **every export must be an async function**
 - Never add `export const metadata` to a `"use server"` file — it will fail at build
@@ -171,7 +164,6 @@ Critical ones agents commonly miss:
 | `AUTH_URL` | Required by Auth.js v5 in production/CI — set to `http://localhost:3000` in CI |
 | `AUTH_TRUST_HOST` | Must be `true` in CI/Docker for Auth.js to accept non-HTTPS callbacks |
 | `UPSTASH_REDIS_REST_URL` | Must start with `https://` — never `redis://` |
-| `NEXT_PUBLIC_PUSHER_KEY` | Separate from `PUSHER_KEY` — client-side bundle needs the `NEXT_PUBLIC_` prefix |
 | `SKIP_ENV_VALIDATION` | Set to `1` in CI to bypass T3 env validation for stub values |
 
 ---

@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { updateComplaint } from "~/server/services/complaint.service";
 import { db } from "~/server/db";
-import { triggerComplaintUpdate } from "~/lib/pusher";
 import type { Prisma } from "@prisma/client";
 
 // Mock Prisma
@@ -79,12 +78,9 @@ describe("Complaint Service - updateComplaint", () => {
 
     expect(result.status).toBe("IN_PROGRESS");
     expect(mockUpdate).toHaveBeenCalled();
-    
+
     // Verify side effects (emails)
     expect(mockAdd).toHaveBeenCalledWith("status-updated", expect.any(Object));
-    
-    // Verify side effects (Pusher)
-    expect(vi.mocked(triggerComplaintUpdate)).toHaveBeenCalledWith(mockComplaintId, expect.any(Object));
   });
 
   it("should throw ForbiddenError if staff updates unassigned complaint outside their department", async () => {
@@ -93,7 +89,7 @@ describe("Complaint Service - updateComplaint", () => {
       assignedToId: "other-staff",
       departmentId: 1,
     });
-    
+
     mockFindFirst.mockResolvedValue(null);
 
     await expect(
