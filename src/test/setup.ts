@@ -12,11 +12,11 @@ vi.mock("~/lib/cache", () => ({
   },
 }));
 
-// Mock Email Queue
-vi.mock("~/server/jobs/queues", () => ({
-  emailQueue: {
-    add: vi.fn().mockResolvedValue({}),
-  },
+// Mock QStash publisher — prevents real HTTP calls to QStash in unit tests
+vi.mock("~/lib/qstash", () => ({
+  publishJob: vi.fn().mockResolvedValue(undefined),
+  jobUrl: vi.fn((path: string) => `http://localhost:3000${path}`),
+  qstashClient: {},
 }));
 
 // Mock Notification Service

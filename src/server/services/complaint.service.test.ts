@@ -31,15 +31,15 @@ vi.mock("~/server/db", () => ({
   },
 }));
 
-// Mock Email Queue
-const { mockAdd } = vi.hoisted(() => ({
-  mockAdd: vi.fn(),
+// Mock QStash publisher
+const { mockPublishJob } = vi.hoisted(() => ({
+  mockPublishJob: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("~/server/jobs/queues", () => ({
-  emailQueue: {
-    add: mockAdd,
-  },
+vi.mock("~/lib/qstash", () => ({
+  publishJob: mockPublishJob,
+  jobUrl: vi.fn((path: string) => `http://localhost:3000${path}`),
+  qstashClient: {},
 }));
 
 describe("Complaint Service - updateComplaint", () => {
@@ -79,8 +79,11 @@ describe("Complaint Service - updateComplaint", () => {
     expect(result.status).toBe("IN_PROGRESS");
     expect(mockUpdate).toHaveBeenCalled();
 
-    // Verify side effects (emails)
-    expect(mockAdd).toHaveBeenCalledWith("status-updated", expect.any(Object));
+    // Verify side effects (emails) — now via publishJob to QStash
+    expect(mockPublishJob).toHaveBeenCalledWith(
+      expect.stringContaining("/api/jobs/email"),
+      expect.objectContaining({ type: "status-updated" }),
+    );
   });
 
   it("should throw ForbiddenError if staff updates unassigned complaint outside their department", async () => {
