@@ -9,7 +9,7 @@
 
 **JotaComplaint V2** is a production-grade municipal complaint management system.
 Stack: Next.js 16 (App Router + Turbopack), TypeScript, Prisma 6, Neon PostgreSQL,
-Upstash Redis, BullMQ, Resend, shadcn/ui, Tailwind 4, Vitest, Playwright.
+Upstash Redis, Upstash QStash, Resend, shadcn/ui, Tailwind 4, Vitest, Playwright.
 
 
 ---
@@ -28,7 +28,7 @@ Upstash Redis, BullMQ, Resend, shadcn/ui, Tailwind 4, Vitest, Playwright.
 ### Always Do This
 - ✅ Keep route handlers thin: auth check → Zod parse → service call → map errors
 - ✅ Use `Promise.allSettled` (not `Promise.all`) when fetching multiple DB sources in RSC pages
-- ✅ Mock `~/lib/cache`, `~/server/jobs/queues`, `~/server/services/notification.service` in all unit tests via `src/test/setup.ts`
+- ✅ Mock `~/lib/cache`, `~/lib/qstash`, `~/server/services/notification.service` in all unit tests via `src/test/setup.ts`
 - ✅ Use `vi.hoisted()` for mocks that reference variables defined before `vi.mock()`
 - ✅ Add `data-testid` attributes to any interactive element an E2E test needs to select
 - ✅ Use `test.setTimeout(90000)` for multi-step E2E flows (3-role lifecycle needs >30s)
@@ -48,8 +48,8 @@ Service (server/services/*.service.ts)
 Prisma DB (server/db.ts singleton)
 
 Side Effects (non-blocking, inside postUpdateSideEffects):
-    ├── emailQueue.add(...)          ← BullMQ
-    └── invalidateCache(...)         ← Upstash
+    ├── publishJob('/api/jobs/email', payload)  ← Upstash QStash
+    └── invalidateCache(...)                    ← Upstash Redis
 ```
 
 ### Key Service Functions
@@ -105,8 +105,8 @@ npm run test:e2e          # requires running dev server or starts its own
 
 ### CI Pipeline (GitHub Actions)
 - File: `.github/workflows/ci.yml`
-- Services: `postgres:15` + `redis:7`
-- Upstash in CI: fake HTTPS URL — cache calls fail-open (try/catch everywhere)
+- Services: `postgres:15` only (no Redis — QStash is external/managed)
+- QStash in CI: fake token values — `publishJob` calls are mocked in unit tests via `setup.ts`
 - Steps: `install → generate → db push → lint → typecheck → vitest → seed → playwright`
 
 ---
@@ -124,10 +124,14 @@ npm run test:e2e          # requires running dev server or starts its own
 - The `similarity()` function in `duplicate.service.ts` requires this extension to exist
 - If you add a fresh DB: run `npx prisma migrate deploy` (runs the extension migration) OR `npx prisma db push` after enabling it via the CI step pattern
 
-### BullMQ / Redis
-- BullMQ requires TCP Redis (`ioredis`) — Upstash HTTP cannot be used for BullMQ
-- Worker runs as a separate process: `npm run worker`
-- In CI the worker is not started — email/escalation jobs are queued but not processed (acceptable)
+### Upstash QStash (background jobs)
+- Job publishing: `publishJob(jobUrl('/api/jobs/email'), payload)` in `~/lib/qstash.ts`
+- Job handlers: `src/app/api/jobs/{email,escalation,digest,cleanup}/route.ts`
+- Signature verification: `verifySignatureAppRouter` from `@upstash/qstash/nextjs` wraps every handler
+- Cron schedules (escalation hourly, digest weekly, cleanup daily) are registered once via `scripts/register-qstash-schedules.ts` — NOT part of build
+- **Local dev**: QStash requires a public HTTPS URL. Use `npx @upstash/qstash-cli dev` or an ngrok tunnel. See local dev note in the schedule script.
+- In tests: mock `~/lib/qstash` — `publishJob` is a `vi.fn()` in `src/test/setup.ts`
+- `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SIGNING_KEY` must be set in production/Vercel
 
 ### Next.js `"use server"` Rule
 - `"use server"` on a file means **every export must be an async function**
@@ -164,6 +168,10 @@ Critical ones agents commonly miss:
 | `AUTH_URL` | Required by Auth.js v5 in production/CI — set to `http://localhost:3000` in CI |
 | `AUTH_TRUST_HOST` | Must be `true` in CI/Docker for Auth.js to accept non-HTTPS callbacks |
 | `UPSTASH_REDIS_REST_URL` | Must start with `https://` — never `redis://` |
+| `QSTASH_TOKEN` | Required for job publishing (use fake value in CI — calls are mocked) |
+| `QSTASH_CURRENT_SIGNING_KEY` | Required by `verifySignatureAppRouter` on each job route handler |
+| `QSTASH_NEXT_SIGNING_KEY` | Required by `verifySignatureAppRouter` for key rotation |
+| `NEXT_PUBLIC_APP_URL` | Used as the base URL for QStash callback targets |
 | `SKIP_ENV_VALIDATION` | Set to `1` in CI to bypass T3 env validation for stub values |
 
 ---
@@ -172,7 +180,7 @@ Critical ones agents commonly miss:
 
 | Task | Priority | Notes |
 |---|---|---|
-| `docker-compose.yml` | High | App + Postgres + Redis + Worker in one command |
+| `docker-compose.yml` | ~~High~~ Done | App + Postgres only — no Redis/worker needed |
 | Audit Log Viewer | Medium | Admin page for `ComplaintActivity` table |
 | Satisfaction Ratings | Medium | Post-resolution feedback, needs schema field |
 | pg_trgm migration | Low | Make extension declarative — add `CREATE EXTENSION` to a migration file |

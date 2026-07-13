@@ -21,16 +21,6 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-      redis:
-        image: redis:7
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - uses: actions/checkout@v4
 
@@ -51,7 +41,9 @@ jobs:
           echo "AUTH_TRUST_HOST=true" >> .env
           echo "UPSTASH_REDIS_REST_URL=https://fake-ci.upstash.io" >> .env
           echo "UPSTASH_REDIS_REST_TOKEN=ci-fake-token" >> .env
-          echo "REDIS_URL=redis://localhost:6379" >> .env
+          echo "QSTASH_TOKEN=ci-fake-qstash-token" >> .env
+          echo "QSTASH_CURRENT_SIGNING_KEY=ci-fake-signing-key" >> .env
+          echo "QSTASH_NEXT_SIGNING_KEY=ci-fake-next-signing-key" >> .env
           echo "NEXT_PUBLIC_APP_URL=http://localhost:3000" >> .env
           echo "RESEND_API_KEY=re_ci_fake_key" >> .env
           echo "AWS_REGION=us-east-1" >> .env
