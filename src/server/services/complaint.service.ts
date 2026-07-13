@@ -19,7 +19,7 @@ import type {
   CreateComplaintInput,
   UpdateComplaintInput,
 } from "~/schemas/complaint.schema";
-import { emailQueue } from "~/server/jobs/queues";
+import { publishJob, jobUrl } from "~/lib/qstash";
 import { invalidateCache, CacheKeys } from "~/lib/cache";
 import { logger } from "~/lib/logger";
 import { sanitizeKeySegment } from "~/server/storage/s3.service";
@@ -289,13 +289,11 @@ export async function createComplaint(
     })
     .then(async (complaint) => {
       // ── Side Effects (Non-blocking) ──────────────────────────
-      void emailQueue
-        .add("complaint-created", {
-          type: "complaint-created",
-          complaintId: complaint.id,
-          userId,
-        })
-        .catch(() => null);
+      void publishJob(jobUrl("/api/jobs/email"), {
+        type: "complaint-created",
+        complaintId: complaint.id,
+        userId,
+      }).catch(() => null);
 
       void invalidateCache(
         CacheKeys.dashboardStats,
@@ -495,35 +493,35 @@ async function postUpdateSideEffects({
     // 1. Queue Emails
     if (complaint.status !== oldStatus) {
       if (complaint.status === "RESOLVED") {
-        void emailQueue.add("complaint-resolved", {
+        void publishJob(jobUrl("/api/jobs/email"), {
           type: "complaint-resolved",
           complaintId: complaint.id,
           userId: complaint.userId,
-        });
+        }).catch(() => null);
       } else if (complaint.status === "REJECTED") {
-        void emailQueue.add("complaint-rejected", {
+        void publishJob(jobUrl("/api/jobs/email"), {
           type: "complaint-rejected",
           complaintId: complaint.id,
           userId: complaint.userId,
           rejectionNote:
             rejectionNote ?? "Please resubmit with more details if needed.",
-        });
+        }).catch(() => null);
       } else {
-        void emailQueue.add("status-updated", {
+        void publishJob(jobUrl("/api/jobs/email"), {
           type: "status-updated",
           complaintId: complaint.id,
           userId: complaint.userId,
           newStatus: complaint.status,
-        });
+        }).catch(() => null);
       }
     }
 
     if (complaint.assignedToId && complaint.assignedToId !== oldAssignedToId) {
-      void emailQueue.add("complaint-assigned", {
+      void publishJob(jobUrl("/api/jobs/email"), {
         type: "complaint-assigned",
         complaintId: complaint.id,
         assignedToId: complaint.assignedToId,
-      });
+      }).catch(() => null);
     }
 
     // 2. Cache Invalidation

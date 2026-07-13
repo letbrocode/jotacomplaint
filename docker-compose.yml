@@ -16,19 +16,6 @@ services:
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7
-    container_name: jotacomplaint-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   app:
     build:
       context: .
@@ -39,7 +26,6 @@ services:
     environment:
       # Override connection strings to use Docker service hostnames
       DATABASE_URL: postgresql://user:password@postgres:5432/jotacomplaint
-      REDIS_URL: redis://redis:6379
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       AUTH_URL: http://localhost:3000
       AUTH_TRUST_HOST: "true"
@@ -48,8 +34,6 @@ services:
       - "3000:3000"
     depends_on:
       postgres:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     # Enable pg_trgm for duplicate detection, then push schema, then start app
     command: >
@@ -65,30 +49,5 @@ services:
       retries: 5
       start_period: 40s
 
-  worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: jotacomplaint-worker
-    env_file:
-      - .env
-    environment:
-      DATABASE_URL: postgresql://user:password@postgres:5432/jotacomplaint
-      REDIS_URL: redis://redis:6379
-      NEXT_PUBLIC_APP_URL: http://localhost:3000
-      AUTH_URL: http://localhost:3000
-      AUTH_TRUST_HOST: "true"
-      SKIP_ENV_VALIDATION: "1"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      # Wait until the app is healthy — guarantees db push + pg_trgm are done
-      app:
-        condition: service_healthy
-    command: npm run worker
-
 volumes:
   postgres_data:
-  redis_data:

@@ -3,7 +3,6 @@ import { Redis } from "@upstash/redis";
 // ============================================
 // Upstash Redis client (HTTP-based, serverless-safe)
 // Used for: rate limiting, metric caching
-// NOT used for BullMQ (requires TCP — see ioredis.ts)
 // ============================================
 
 if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {

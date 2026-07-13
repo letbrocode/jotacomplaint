@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "~/server/db";
 import { redis } from "~/lib/redis";
-import { ioredis } from "~/lib/ioredis";
-import { emailQueue } from "~/server/jobs/queues";
+import { qstashClient } from "~/lib/qstash";
 import { logger } from "~/lib/logger";
 
 export async function GET() {
@@ -42,31 +41,30 @@ export async function GET() {
     isHealthy = false;
   }
 
-  // 3. TCP Redis (BullMQ)
+  // 3. QStash (background jobs) — lightweight reachability check (2s timeout)
   try {
-    const pong = await ioredis.ping();
-    status.services.redis_queue = pong === "PONG" ? "UP" : "DEGRADED";
-    if (pong !== "PONG") {
-      logger.warn({ pong }, "Health Check: TCP Redis DEGRADED");
-      isHealthy = false;
-    }
-  } catch (err) {
-    logger.error({ err }, "Health Check: TCP Redis DOWN");
-    status.services.redis_queue = "DOWN";
-    isHealthy = false;
-  }
+    const schedules = await Promise.race([
+      qstashClient.schedules.list(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("QStash ping timeout")), 2000),
+      ),
+    ]);
 
-  // 4. BullMQ Health
-  try {
-    const counts = await emailQueue.getJobCounts();
-    status.services.bullmq = {
+    // If we can list schedules (even empty), the API is reachable
+    status.services.qstash = {
       status: "UP",
-      queue_depth: counts,
+      schedule_count: schedules.length,
     };
   } catch (err) {
-    logger.error({ err }, "Health Check: BullMQ DOWN");
-    status.services.bullmq = "DOWN";
-    isHealthy = false;
+    const message = err instanceof Error ? err.message : String(err);
+    if (message.includes("timeout")) {
+      logger.warn("Health Check: QStash ping timed out (>2s)");
+      status.services.qstash = "DEGRADED";
+    } else {
+      logger.error({ err }, "Health Check: QStash DOWN");
+      status.services.qstash = "DOWN";
+      isHealthy = false;
+    }
   }
 
   if (!isHealthy) {
