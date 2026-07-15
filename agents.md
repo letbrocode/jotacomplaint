@@ -138,6 +138,12 @@ npm run test:e2e          # requires running dev server or starts its own
 - Never add `export const metadata` to a `"use server"` file — it will fail at build
 - Page files (`page.tsx`) should NOT have `"use server"` — they are RSC by default
 
+### Terraform & AWS S3
+- **State Bucket**: The S3 backend bucket for Terraform state is manually created and not managed by the Terraform config itself (chicken-and-egg problem).
+- **State Locking**: Uses Terraform 1.10+ native S3 conditional writes (`use_lockfile = true`) — no DynamoDB table needed.
+- **IAM**: Uses a legacy long-lived IAM user for Vercel runtime access. Future improvement is to use Vercel OIDC for IAM role federation.
+- **tfvars**: NEVER commit `terraform.tfvars`. Use `terraform.tfvars.example` as a template.
+
 ---
 
 ## 7. Seed Data
@@ -176,16 +182,17 @@ Critical ones agents commonly miss:
 
 ---
 
-## 9. What's Left (Phase E)
+## 9. What's Left
 
 | Task | Priority | Notes |
 |---|---|---|
 | `docker-compose.yml` | ~~High~~ Done | App + Postgres only — no Redis/worker needed |
-| Audit Log Viewer | Medium | Admin page for `ComplaintActivity` table |
+| AWS Terraform | ~~High~~ Done | S3 bucket + IAM provisioned via Terraform |
+| Audit Log Viewer | ~~Medium~~ Done | Admin page for `ComplaintActivity` table |
 | Satisfaction Ratings | Medium | Post-resolution feedback, needs schema field |
 | pg_trgm migration | Low | Make extension declarative — add `CREATE EXTENSION` to a migration file |
 
-After Phase E: merge `feat/cicd-hardening` → `main`, tag `v2.0.0`.
+After Phase F (AWS Terraform): merge to `main`, tag `v2.0.0`.
 
 ---
 

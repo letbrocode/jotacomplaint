@@ -278,6 +278,7 @@ Complaint >── Department
 | **Charts** | Recharts | 3.x | Analytics charts in admin dashboard |
 | **Maps** | Leaflet + React Leaflet | 1.9 / 5.x | Interactive maps with markers |
 | **Image Uploads** | AWS S3 + @aws-sdk/client-s3 | 3.x | Private S3 storage with presigned upload/read URLs |
+| **Infrastructure**| Terraform | 1.10+ | IaC for AWS S3 and IAM provisioning |
 | **Notifications UI** | Sonner | 2.x | Toast notifications |
 | **Icons** | Lucide React | 0.544 | Clean SVG icon library |
 | **Date Formatting** | date-fns | 4.x | Human-readable timestamps |
@@ -393,6 +394,7 @@ AWS S3 is integrated via `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner
 - Images are uploaded directly to a private S3 bucket from the browser using the presigned URL
 - The S3 object key is stored in `Complaint.photoKey` (not a URL)
 - Short-lived presigned GET URLs are generated server-side when images need to be displayed
+- **Infrastructure**: The S3 bucket, CORS configuration, and IAM access policies are securely provisioned via **Terraform** (IaC).
 
 ### Map Integration
 - **Leaflet + React Leaflet** used for interactive maps

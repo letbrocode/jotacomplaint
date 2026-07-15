@@ -45,10 +45,11 @@ next-env.d.ts
 # local sqlite
 prisma/db.sqlite
 
-jotacomplaint_v2_plan.md
-progress.md
-implementation_plan.md
+mcp.json
 jotacomplaint_context.md
-.understand-anything
-AWS_S3_TERRAFORM_PHASE_PLAN.md
 JOTA_INTERVIEW_PREP.md
+
+.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars

@@ -1,0 +1,5 @@
+bucket_name = "jotacomplaint-uploads"
+prod_origin = "https://yourdomain.com"
+dev_origin  = "http://localhost:3000"
+
+abandoned_upload_expiration_days = 7
