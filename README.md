@@ -51,6 +51,7 @@ A production-grade, full-stack municipal service platform for citizen grievance 
 | **Email** | Resend + React Email templates |
 | **Maps** | Leaflet.js (OpenStreetMap) |
 | **Images** | AWS S3 (private, presigned URLs) |
+| **Infrastructure** | Terraform (IaC for S3 and IAM) |
 
 ---
 
@@ -81,7 +82,18 @@ Copy `.env.example` to `.env` and fill in:
 - `RESEND_API_KEY`
 - `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_UPLOAD_BUCKET`
 
-### **4. Database Setup**
+### **4. Terraform (AWS S3) Setup**
+Provisions the S3 bucket and IAM user for image uploads.
+```bash
+cd infra/aws
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars with your values
+terraform init
+terraform apply
+```
+After applying, copy the access keys into your `.env`.
+
+### **5. Database Setup**
 ```bash
 # Setup DB
 npx prisma migrate dev
@@ -98,7 +110,7 @@ npm run dev
 > ```
 > Or expose localhost with [ngrok](https://ngrok.com/) and set `NEXT_PUBLIC_APP_URL` to the tunnel URL.
 
-### **5. Register Cron Schedules (one-time, per environment)**
+### **6. Register Cron Schedules (one-time, per environment)**
 After your first production deploy, register the 3 QStash cron schedules:
 ```bash
 QSTASH_TOKEN=... NEXT_PUBLIC_APP_URL=https://your-app.vercel.app \
@@ -106,7 +118,7 @@ QSTASH_TOKEN=... NEXT_PUBLIC_APP_URL=https://your-app.vercel.app \
 ```
 This creates schedules for: SLA escalation (every 15 min), weekly digest (Mon 9am), cleanup (daily midnight).
 
-### **5. Dockerized Local Stack (Recommended for parity)**
+### **7. Dockerized Local Stack (Recommended for parity)**
 ```bash
 # Build and start app + worker + postgres + redis
 npm run docker:up

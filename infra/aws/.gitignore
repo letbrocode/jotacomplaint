@@ -1,0 +1,16 @@
+# Terraform working directory and downloaded plugins
+.terraform/
+
+# State files — never commit state
+*.tfstate
+*.tfstate.*
+
+# Lock file backup (the primary .terraform.lock.hcl should be committed)
+.terraform.lock.hcl.backup
+
+# Real variable values — use terraform.tfvars.example as the template
+terraform.tfvars
+
+# Crash log from Terraform
+crash.log
+crash.*.log
